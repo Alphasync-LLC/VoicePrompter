@@ -300,7 +300,6 @@ useCases.forEach((useCase) => {
 // 7. Update sitemap.xml dynamically
 if (fs.existsSync(SITEMAP_PATH)) {
     let sitemap = fs.readFileSync(SITEMAP_PATH, 'utf-8');
-    const today = new Date().toISOString().split('T')[0];
 
     // Filter out entries that are already in the sitemap to avoid duplicates
     const newEntries = useCases
@@ -308,7 +307,6 @@ if (fs.existsSync(SITEMAP_PATH)) {
         .filter(uc => !sitemap.includes(uc.canonicalUrl))
         .map(uc => `  <url>
     <loc>${uc.canonicalUrl}</loc>
-    <lastmod>${today}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>`);

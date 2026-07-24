@@ -11,10 +11,12 @@ const __dirname = path.dirname(__filename);
 const BLOG_DIR = path.join(__dirname, '../blog');
 const TEMPLATE_PATH = path.join(__dirname, 'article-template.html');
 const INDEX_TEMPLATE_PATH = path.join(__dirname, 'blog-index-template.html');
+const USE_CASES_PATH = path.join(__dirname, 'use-cases.json');
 
 // Read templates
 const articleTemplate = fs.readFileSync(TEMPLATE_PATH, 'utf-8');
 const indexTemplate = fs.readFileSync(INDEX_TEMPLATE_PATH, 'utf-8');
+const useCases = JSON.parse(fs.readFileSync(USE_CASES_PATH, 'utf-8'));
 
 // Get all markdown files
 const mdFiles = fs.readdirSync(BLOG_DIR)
@@ -63,6 +65,23 @@ function stripMd(s) {
         .replace(/\*\*([^*]+)\*\*/g, '$1')       // **bold** -> bold
         .replace(/[*_`]/g, '')                    // stray emphasis/code marks
         .trim();
+}
+
+// Frontmatter dates are calendar dates, not instants in time. Preserve the
+// authored day instead of converting local midnight to UTC and potentially
+// shifting the sitemap and schema date back by one day.
+function normalizeDateOnly(value, fallback = new Date().toISOString().split('T')[0]) {
+    const source = String(value || '').trim();
+    const isoMatch = source.match(/^(\d{4}-\d{2}-\d{2})(?:$|T)/);
+    if (isoMatch) return isoMatch[1];
+
+    const parsed = new Date(source);
+    if (Number.isNaN(parsed.getTime())) return fallback;
+
+    const year = parsed.getFullYear();
+    const month = String(parsed.getMonth() + 1).padStart(2, '0');
+    const day = String(parsed.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 // Extract FAQ pairs from a "## Frequently asked questions" (or "## FAQ") section so we
@@ -151,13 +170,8 @@ mdFiles.forEach(file => {
     };
 
     // Generate JSON-LD Schema
-    const isoDate = (() => {
-        const d = new Date(article.date);
-        return isNaN(d.getTime()) ? new Date().toISOString().split('T')[0] : d.toISOString().split('T')[0];
-    })();
+    const isoDate = normalizeDateOnly(article.date);
     article.isoDate = isoDate;
-
-    articles.push(article);
     
     const schemas = [];
     
@@ -167,11 +181,12 @@ mdFiles.forEach(file => {
     // dateModified powers the freshness signal when a post is refreshed. Set an
     // `updated:` (or `dateModified:`) frontmatter field on a refresh; otherwise it
     // mirrors the publish date.
-    const modifiedIso = (() => {
-        const src = frontmatter.updated || frontmatter.dateModified;
-        if (src) { const d = new Date(src); if (!isNaN(d.getTime())) return d.toISOString().split('T')[0]; }
-        return isoDate;
-    })();
+    const modifiedIso = normalizeDateOnly(
+        frontmatter.updated || frontmatter.dateModified,
+        isoDate
+    );
+    article.modifiedIso = modifiedIso;
+    articles.push(article);
 
     // Article Schema (enriched: dateModified, author entity, publisher)
     const articleSchema = {
@@ -378,78 +393,73 @@ fs.writeFileSync(path.join(BLOG_DIR, 'index.html'), indexHtml);
 console.log(`✓ Generated static blog index with ${articles.length} articles`);
 
 // Generate sitemap.xml
-const today = new Date().toISOString().split('T')[0];
 const sitemapEntries = [
     `  <url>
     <loc>https://voiceprompter.app/</loc>
-    <lastmod>${today}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>`,
     // Note: /app/ is intentionally excluded — it's the live PWA UI and is noindexed.
     `  <url>
     <loc>https://voiceprompter.app/web/</loc>
-    <lastmod>${today}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>`,
     `  <url>
     <loc>https://voiceprompter.app/mac/</loc>
-    <lastmod>${today}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>`,
     `  <url>
     <loc>https://voiceprompter.app/ios/</loc>
-    <lastmod>${today}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>`,
     `  <url>
     <loc>https://voiceprompter.app/ipad/</loc>
-    <lastmod>${today}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>`,
     `  <url>
     <loc>https://voiceprompter.app/android/</loc>
-    <lastmod>${today}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>`,
     `  <url>
     <loc>https://voiceprompter.app/about.html</loc>
-    <lastmod>${today}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>`,
     `  <url>
     <loc>https://voiceprompter.app/privacy.html</loc>
-    <lastmod>${today}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>`,
     `  <url>
     <loc>https://voiceprompter.app/terms.html</loc>
-    <lastmod>${today}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>`,
     `  <url>
     <loc>https://voiceprompter.app/blog/</loc>
-    <lastmod>${today}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>`,
     `  <url>
     <loc>https://voiceprompter.app/changelog.html</loc>
-    <lastmod>${today}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>`,
+    ...useCases
+        .filter(useCase => !useCase.isRootMac)
+        .map(useCase => `  <url>
+    <loc>${useCase.canonicalUrl}</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>`),
     ...articles.map(article => `  <url>
     <loc>https://voiceprompter.app/blog/${article.slug}.html</loc>
-    <lastmod>${today}</lastmod>
+    <lastmod>${article.modifiedIso}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>`)
