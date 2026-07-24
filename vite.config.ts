@@ -30,7 +30,7 @@ export default defineConfig({
         VitePWA({
             registerType: 'autoUpdate',
             workbox: {
-                navigateFallbackDenylist: [/^\/mac/, /^\/ios/, /^\/ipad/, /^\/web/, /^\/about/, /^\/blog/, /^\/changelog/]
+                navigateFallbackDenylist: [/^\/mac/, /^\/ios/, /^\/ipad/, /^\/android/, /^\/web/, /^\/about/, /^\/blog/, /^\/changelog/]
             },
             includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
             manifest: {
@@ -70,6 +70,7 @@ export default defineConfig({
                 mac: 'mac/index.html',
                 ios: 'ios/index.html',
                 ipad: 'ipad/index.html',
+                android: 'android/index.html',
                 web: 'web/index.html',
                 ...blogInputs,
                 ...useCaseInputs

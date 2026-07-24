@@ -27,7 +27,7 @@ The difference with VoicePrompter's web app is **voice scrolling in the browser*
 2. Paste your script and tap the microphone; allow mic access.
 3. Talk. Adjust font size and colors to taste; position the window near your camera.
 
-That works identically on a Mac, a Windows PC, an Android phone or tablet ([full Android guide here](free-teleprompter-for-android.html)), an iPhone, or a Chromebook - if it runs a modern browser, it runs the prompter.
+That works identically on a Mac, a Windows PC, an Android phone or tablet, an iPhone, or a Chromebook - if it runs a modern browser, it runs the prompter. For features a browser cannot provide, see the [native Android teleprompter comparison](best-teleprompter-app-for-android.html).
 
 ## What a browser teleprompter can't do
 

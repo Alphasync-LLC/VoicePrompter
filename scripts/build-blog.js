@@ -146,7 +146,8 @@ mdFiles.forEach(file => {
         keywords: frontmatter.keywords || [],
         content: htmlContent,
         toc: tocHtml,
-        video: Boolean(frontmatter.video && frontmatter.video.videoId)
+        video: Boolean(frontmatter.video && frontmatter.video.videoId),
+        store: frontmatter.store || 'apple'
     };
 
     // Generate JSON-LD Schema
@@ -245,6 +246,20 @@ mdFiles.forEach(file => {
     }
     
     const jsonLdBlock = `<script type="application/ld+json">\n${JSON.stringify(schemas, null, 2)}\n</script>`;
+    const storeCta = article.store === 'android'
+        ? `<a href="https://play.google.com/store/apps/details?id=app.voiceprompter&utm_source=voiceprompter.app&utm_medium=website&utm_campaign=blog-${article.slug}-footer"
+                        target="_blank" rel="noopener" data-umami-event="blog-footer-download-android">
+                        <img src="/GetItOnGooglePlay_Badge_Web_color_English.svg"
+                            alt="Get VoicePrompter on Google Play" style="height:52px;width:auto;margin:0 auto;display:block;">
+                    </a>`
+        : `<a href="https://apps.apple.com/app/apple-store/id6758573080?pt=128503212&ct=blog-article-footer&mt=8"
+                        target="_blank" rel="noopener" data-umami-event="blog-footer-download">
+                        <img src="/Download_on_the_App_Store_Badge_US-UK_RGB_wht_092917.svg"
+                            alt="Download VoicePrompter on the App Store" style="height:52px;width:auto;margin:0 auto;display:block;">
+                    </a>`;
+    const heroImageSrc = article.image.startsWith(SITE)
+        ? article.image.slice(SITE.length)
+        : article.image;
 
     // Generate HTML from template
     let html = articleTemplate
@@ -252,10 +267,11 @@ mdFiles.forEach(file => {
         .replace(/\{\{DESCRIPTION\}\}/g, article.description)
         .replace(/\{\{DATE\}\}/g, article.date)
         .replace(/\{\{CONTENT\}\}/g, article.content)
+        .replace(/\{\{STORE_CTA\}\}/g, storeCta)
         .replace(/\{\{TOC\}\}/g, article.toc || '')
         .replace(/\{\{HERO\}\}/g,
             article.image && !article.video && !/ytimg\.com/.test(article.image)
-                ? `<img class="article-hero" src="${article.image}" alt="" decoding="async" fetchpriority="high">`
+                ? `<img class="article-hero" src="${heroImageSrc}" alt="" decoding="async" fetchpriority="high">`
                 : '')
         .replace(/\{\{KEYWORDS\}\}/g, article.keywords.join(', '))
         .replace(/\{\{SLUG\}\}/g, article.slug)
@@ -328,12 +344,12 @@ const blogSchema = [
             {
                 "@type": "Question",
                 "name": "Is there a free teleprompter app?",
-                "acceptedAnswer": { "@type": "Answer", "text": "Yes. The VoicePrompter web app is completely free in any browser, and the native Mac, iPhone, and iPad apps have a free tier that includes full voice tracking with 3 custom scripts." }
+                "acceptedAnswer": { "@type": "Answer", "text": "Yes. The VoicePrompter web app is completely free in any browser. The native apps include a limited try with full voice tracking and up to 3 custom scripts. The free comparison guides cover iPhone apps and no-download browser options." }
             },
             {
                 "@type": "Question",
                 "name": "What's the best teleprompter app?",
-                "acceptedAnswer": { "@type": "Answer", "text": "It depends on your device and how the app scrolls. VoicePrompter leads for whole-script voice tracking on Mac, iPhone, and iPad; the blog's top 10 teleprompter software comparison ranks the full field across platforms." }
+                "acceptedAnswer": { "@type": "Answer", "text": "It depends on your device and how the app scrolls. VoicePrompter offers whole-script voice tracking on Android, Mac, iPhone, and iPad. The blog includes a cross-platform top 10 ranking plus dedicated comparisons for Android, Mac, iPhone, and iPad." }
             },
             {
                 "@type": "Question",
@@ -343,7 +359,7 @@ const blogSchema = [
             {
                 "@type": "Question",
                 "name": "Can I turn an iPad or Android tablet into a teleprompter?",
-                "acceptedAnswer": { "@type": "Answer", "text": "Yes. A tablet makes an excellent prompter screen: mount it next to your camera, in a beam-splitter rig with mirror mode, or across the room. On Android, the free VoicePrompter web app runs in Chrome with voice tracking." }
+                "acceptedAnswer": { "@type": "Answer", "text": "Yes. A tablet makes an excellent prompter screen: mount it next to your camera, in a beam-splitter rig with mirror mode, or across the room. VoicePrompter has native apps for both Android tablets and iPad." }
             },
             {
                 "@type": "Question",
@@ -391,6 +407,12 @@ const sitemapEntries = [
   </url>`,
     `  <url>
     <loc>https://voiceprompter.app/ipad/</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>`,
+    `  <url>
+    <loc>https://voiceprompter.app/android/</loc>
     <lastmod>${today}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>

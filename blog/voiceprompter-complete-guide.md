@@ -42,7 +42,7 @@ On [iPad](https://voiceprompter.app/ipad/), the big screen plus Mirroring mode m
 
 ## The free web app
 
-The [web app](https://voiceprompter.app/web/) is free, open source, and runs in Chrome, Edge, or Safari on any device - including [Android](free-teleprompter-for-android.html) and Windows. Voice scrolling, mirror mode, video recording, and offline use (it installs as a PWA), with no account and no watermark. Its limits: a browser tab can't float over other apps or hide from screen shares - that's what the native apps add.
+The [web app](https://voiceprompter.app/web/) is free, open source, and runs in Chrome, Edge, or Safari on any device, including Android and Windows. Voice scrolling, mirror mode, video recording, and offline use are included, with no account and no watermark. Its limits: a browser tab can't float over other apps or hide from screen shares - that's what the [native Android app](best-teleprompter-app-for-android.html) and Apple apps add.
 
 ## Pricing, simply
 
