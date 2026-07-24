@@ -11,6 +11,7 @@ import { enterVideoMode, exitVideoMode, toggleVideoLayout, startRecording, stopR
 import { detectAll } from 'tinyld/light';
 import { fetchGoogleDocText } from './gdoc';
 import { enumerateAndPopulateDevices } from './devices';
+import { detectVisitorPlatform, getNativePromo } from './platform-promo';
 
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
@@ -606,18 +607,9 @@ els.resetAppBtn.addEventListener('click', resetApp);
 // Restart Script Button
 els.restartScriptBtn.addEventListener('click', restartScript);
 
-const MAC_PROMO_PAIRS = [
-    {
-        line1: "Invisible during screen sharing",
-        line2: "Perfect for ",
-        rotating: ["video calls", "sales demos", "interviews", "podcasts", "webinars"]
-    },
-    {
-        line1: "Invisible on screen recordings",
-        line2: "Perfect for ",
-        rotating: ["Looms", "YouTube videos", "tutorials", "product demos"]
-    }
-];
+const visitorPlatform = detectVisitorPlatform();
+const nativePromo = getNativePromo(visitorPlatform);
+els.nativePromoTitle.textContent = nativePromo.title;
 
 let promoTimeout: number | null = null;
 let currentPromoPairIndex = 0;
@@ -630,11 +622,10 @@ function startPromoAnimation() {
         promoTimeout = null;
     }
 
-    const subtitleEl = document.getElementById('macPromoSubtitle');
-    if (!subtitleEl) return;
+    const subtitleEl = els.nativePromoSubtitle;
 
-    const pair = MAC_PROMO_PAIRS[currentPromoPairIndex];
-    currentPromoPairIndex = (currentPromoPairIndex + 1) % MAC_PROMO_PAIRS.length;
+    const pair = nativePromo.pairs[currentPromoPairIndex];
+    currentPromoPairIndex = (currentPromoPairIndex + 1) % nativePromo.pairs.length;
     
     currentPromoPairStatic = pair.line1;
 
@@ -708,11 +699,15 @@ els.closeSettingsBtn.addEventListener('click', () => {
     stopPromoAnimation();
 });
 
-// Mac Promo Card Banner
-els.settingsMacBanner.addEventListener('click', () => {
+// Native App Promo Card Banner
+els.settingsNativeAppBanner.addEventListener('click', () => {
     const promoData = currentPromoWord ? `${currentPromoPairStatic} - ${currentPromoWord}` : currentPromoPairStatic;
-    (window as any).umami?.track('settings-banner-mac', { variant: promoData });
-    window.location.href = '/mac/';
+    (window as any).umami?.track(nativePromo.analyticsEvent, {
+        destination: nativePromo.href,
+        sourcePlatform: visitorPlatform,
+        variant: promoData
+    });
+    window.location.href = nativePromo.href;
 });
 
 // Font Size Slider
