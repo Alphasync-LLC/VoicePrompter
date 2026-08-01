@@ -19,7 +19,19 @@ export function saveToHistory(text: string, googleDocUrl?: string | null): void 
     };
 
     history.unshift(item);
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    try {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    } catch (e) {
+        if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+            // Remove oldest item and retry
+            history.pop();
+            try {
+                localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+            } catch (e2) {
+                console.error('Failed to save history after quota cleanup:', e2);
+            }
+        }
+    }
 }
 
 export function clearAllHistory(): void {
