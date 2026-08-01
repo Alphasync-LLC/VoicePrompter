@@ -19,7 +19,6 @@ export function saveToHistory(text: string, googleDocUrl?: string | null): void 
     };
 
     history.unshift(item);
-    if (history.length > 10) history.pop();
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
 }
 
