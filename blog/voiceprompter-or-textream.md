@@ -25,7 +25,7 @@ VoicePrompter is built around getting that one thing right, and its voice scroll
 | | VoicePrompter | Textream |
 |---|---------------|----------|
 | Voice scrolling | **Word tracking + Sound - unlimited listening window** | Word tracking (freezes / CJK issues reported) |
-| Reliability | **Built to be reliable (5.0★)** | Issues on its own tracker (mid-2026) |
+| Reliability | **Whole-script tracking with App Store distribution** | Issues on its own tracker (mid-2026) |
 | How you install it | **One click, Mac App Store** | Terminal command for an unsigned app |
 | Start a script | **One click from your clipboard** | Manage scripts in-app |
 | Invisible on screen share | Yes | Yes |
@@ -39,7 +39,7 @@ Credit where it's due: Textream is **free and open source**, which is genuinely 
 
 ## Why people pick VoicePrompter
 
-VoicePrompter is a native Mac app from the App Store with the most reliable voice scrolling I've found - an unlimited listening window that tracks your whole script - plus a transparent overlay that stays **invisible during screen sharing** and floats on top of everything. It's also the **easiest to start**: write your script wherever you already work - Notes, Google Docs, Notion - and launch it in **one click** from your clipboard, instead of pasting and managing scripts inside an app's editor. It holds a **5.0★ rating**, is used by creators in **125+ countries**, and is **free to use for up to 3 custom scripts plus a demo script** - no terminal, no risk.
+VoicePrompter is a native Mac app from the App Store with the most reliable voice scrolling I've found - an unlimited listening window that tracks your whole script - plus a transparent overlay that stays **invisible during screen sharing** and floats on top of everything. It's also the **easiest to start**: write your script wherever you already work - Notes, Google Docs, Notion - and launch it in **one click** from your clipboard, instead of pasting and managing scripts inside an app's editor. It is used by creators in **125+ countries** and is **free to use for up to 3 custom scripts plus a demo script** - no terminal, no risk.
 
 ## Frequently asked questions
 

@@ -13,7 +13,7 @@ VoicePrompter is a voice-controlled teleprompter that scrolls as you speak, avai
 
 ## Why VoicePrompter exists
 
-I spent years looking for a teleprompter that worked for real recording - videos, demos, presentations - and everything failed the same two ways: scrolling that didn't follow me, and windows that showed up in my screen shares. So I built the tool I wanted. Today it's used by creators in 125+ countries, holds a 5.0★ App Store rating, and over 9,500 scripts are read aloud through it every month.
+I spent years looking for a teleprompter that worked for real recording - videos, demos, presentations - and everything failed the same two ways: scrolling that didn't follow me, and windows that showed up in my screen shares. So I built the tool I wanted. Today it's used by creators in 125+ countries, and over 9,500 scripts are read aloud through it every month.
 
 ## The core: whole-script voice tracking
 

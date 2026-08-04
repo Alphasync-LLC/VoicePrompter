@@ -40,7 +40,7 @@ Notchie is a tidy, Mac-native notch app, and if your workflow is reading a scrip
 
 ## Why people pick VoicePrompter
 
-Beyond word tracking, VoicePrompter's voice scrolling is the best I've found - an **unlimited listening window** that tracks your whole script, so it stays with you when you go off-script. It floats on top of every app (including full-screen Keynote and Zoom), stays **invisible during screen sharing and recording**, and supports **60+ languages** on-device. It's also the **easiest and most intuitive** teleprompter to use: write your script anywhere - Notes, Docs, Notion - and start it in **one click** from your clipboard, instead of managing scripts inside a clunkier in-app editor. It holds a **5.0★ App Store rating**. As one reviewer wrote, it's *"the most robust, reliable, versatile and customizable one I've tried… it follows them word for word."*
+Beyond word tracking, VoicePrompter's voice scrolling is the best I've found - an **unlimited listening window** that tracks your whole script, so it stays with you when you go off-script. It floats on top of every app (including full-screen Keynote and Zoom), stays **invisible during screen sharing and recording**, and supports **60+ languages** on-device. It's also the **easiest and most intuitive** teleprompter to use: write your script anywhere - Notes, Docs, Notion - and start it in **one click** from your clipboard, instead of managing scripts inside a clunkier in-app editor. As one reviewer wrote, it's *"the most robust, reliable, versatile and customizable one I've tried… it follows them word for word."*
 
 ## Frequently asked questions
 

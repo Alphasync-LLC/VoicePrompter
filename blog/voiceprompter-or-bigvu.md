@@ -36,7 +36,7 @@ If your real goal is producing captioned social clips end to end - and you'd rat
 
 ## Why people pick VoicePrompter
 
-If what you actually need is a teleprompter that *works* - with the best voice scrolling I've found (an **unlimited listening window** that tracks your whole script), invisible on screen shares, floating over everything - a focused native app beats a suite where prompting is one feature among many. It's also the **easiest to start**: write your script anywhere (Notes, Docs, Notion) and launch it in **one click** from your clipboard. VoicePrompter holds a **5.0★ App Store rating**, supports **60+ languages**, and has a free web version. One reviewer summed it up: *"the most robust, reliable, versatile and customizable one I've tried… it follows them word for word."*
+If what you actually need is a teleprompter that *works* - with the best voice scrolling I've found (an **unlimited listening window** that tracks your whole script), invisible on screen shares, floating over everything - a focused native app beats a suite where prompting is one feature among many. It's also the **easiest to start**: write your script anywhere (Notes, Docs, Notion) and launch it in **one click** from your clipboard. VoicePrompter supports **60+ languages** and has a free web version. One reviewer summed it up: *"the most robust, reliable, versatile and customizable one I've tried… it follows them word for word."*
 
 ## Frequently asked questions
 

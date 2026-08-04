@@ -36,7 +36,7 @@ If you want an all-in-one "open the app, read, and record" experience with devic
 
 ## Why people pick VoicePrompter
 
-For anyone who works *through* their Mac - sharing a screen on a call, presenting slides, recording a demo - the invisible, always-on-top overlay is the feature that changes everything, and you can run it alongside your favorite recording app. As one user wrote about sales calls: *"they stay visible only to me even when I share my screen."* On top of that, VoicePrompter's voice scrolling is the best I've found - an **unlimited listening window** that tracks your whole script, so it never loses you when you jump around - and it's the **easiest to start**: write your script in Notes, Docs, or Notion and launch it in **one click** from your clipboard. It supports **60+ languages**, holds a **5.0★ rating**, and has a free web version to try.
+For anyone who works *through* their Mac - sharing a screen on a call, presenting slides, recording a demo - the invisible, always-on-top overlay is the feature that changes everything, and you can run it alongside your favorite recording app. As one user wrote about sales calls: *"they stay visible only to me even when I share my screen."* On top of that, VoicePrompter's voice scrolling is the best I've found - an **unlimited listening window** that tracks your whole script, so it never loses you when you jump around - and it's the **easiest to start**: write your script in Notes, Docs, or Notion and launch it in **one click** from your clipboard. It supports **60+ languages** and has a free web version to try.
 
 ## Frequently asked questions
 

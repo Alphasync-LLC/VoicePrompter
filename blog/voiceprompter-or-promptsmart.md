@@ -37,7 +37,7 @@ Two honest points, as of mid-2026:
 
 ## Why people pick VoicePrompter on Mac
 
-For Mac recording - demos, webinars, sales calls, courses - the combination of a **native, always-on-top, invisible overlay** with the best voice scrolling I've found (an **unlimited listening window** that tracks your whole script in **60+ languages**) is the specific thing that solves the real problem. It's also the **easiest to start**: write your script in Notes, Docs, or Notion and launch it in **one click** from your clipboard - no wrestling it into a dated in-app editor first. Add menu-bar quick settings, deep customization, a **5.0★ App Store rating**, and a free web version to try. As one reviewer put it: *"the most robust, reliable, versatile and customizable one I've tried."*
+For Mac recording - demos, webinars, sales calls, courses - the combination of a **native, always-on-top, invisible overlay** with the best voice scrolling I've found (an **unlimited listening window** that tracks your whole script in **60+ languages**) is the specific thing that solves the real problem. It's also the **easiest to start**: write your script in Notes, Docs, or Notion and launch it in **one click** from your clipboard - no wrestling it into a dated in-app editor first. Add menu-bar quick settings, deep customization, and a free web version to try. As one reviewer put it: *"the most robust, reliable, versatile and customizable one I've tried."*
 
 ## Frequently asked questions
 

@@ -21,8 +21,8 @@
   },
   {
     "id": "script-saving",
-    "q": "Are my scripts saved?",
-    "a": "VoicePrompter automatically saves up to 100 recent scripts locally on your device so you can reload them with one click. Nothing is uploaded or synced anywhere."
+    "q": "Do my scripts sync across Mac, iPhone, and iPad?",
+    "a": "Yes. VoicePrompter saves up to 100 recent scripts and syncs them between Mac, iPhone, and iPad through iCloud when the devices use the same Apple ID. Create or edit a script on one Apple device and it becomes available on the others. The apps continue to work offline and sync changes when iCloud is available."
   },
   {
     "id": "stage-directions",
@@ -52,7 +52,7 @@
   {
     "id": "data-privacy",
     "q": "Is my data private?",
-    "a": "VoicePrompter does not collect, process, or transmit your scripts or any other personal data. Everything runs on your device. This is verified by Apple - the app passed Apple's review process for security and data privacy before being approved on the Mac App Store."
+    "a": "VoicePrompter does not collect or send your scripts or audio to VoicePrompter servers. Speech recognition runs on your device. When iCloud is enabled, Apple syncs saved scripts between your Mac, iPhone, and iPad under the same Apple ID."
   },
   {
     "id": "supported-models",

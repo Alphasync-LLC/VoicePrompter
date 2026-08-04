@@ -49,7 +49,7 @@ VoicePrompter does **both**: a simple **Sound mode** (the thing other apps call 
 
 ### VoicePrompter for Mac (the one I built)
 
-A native macOS menu-bar app with a transparent overlay that stays on top of everything - including full-screen Keynote and Zoom - and is **completely invisible** in Zoom, Teams, Google Meet, OBS, and QuickTime recordings. It uses Apple's on-device speech recognition (private, works offline), supports **60+ languages** with auto-detection, and offers both **word tracking and Sound mode**, plus **backward scrolling**. You can start a script in **one click from your clipboard**, set up menu-bar quick settings, and customize the look in detail. It's 2 MB and launches instantly. There's also a free web version. It holds a **5.0★ App Store rating**, and it's used by creators in **125+ countries**.
+A native macOS menu-bar app with a transparent overlay that stays on top of everything - including full-screen Keynote and Zoom - and is **completely invisible** in Zoom, Teams, Google Meet, OBS, and QuickTime recordings. It uses Apple's on-device speech recognition (private, works offline), supports **60+ languages** with auto-detection, and offers both **word tracking and Sound mode**, plus **backward scrolling**. You can start a script in **one click from your clipboard**, set up menu-bar quick settings, and customize the look in detail. It's 2 MB and launches instantly. There's also a free web version, and it's used by creators in **125+ countries**.
 
 What users say: *"the most robust, reliable, versatile and customizable one I've tried… follows them word for word"*; on sales calls, *"they stay visible only to me even when I share my screen."*
 

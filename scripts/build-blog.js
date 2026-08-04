@@ -161,6 +161,7 @@ mdFiles.forEach(file => {
         title: frontmatter.title || 'Untitled',
         description: frontmatter.description || '',
         date: frontmatter.date || 'Unknown date',
+        updated: frontmatter.updated || frontmatter.dateModified || '',
         image: frontmatter.image || '',
         keywords: frontmatter.keywords || [],
         content: htmlContent,
@@ -186,6 +187,7 @@ mdFiles.forEach(file => {
         isoDate
     );
     article.modifiedIso = modifiedIso;
+    article.displayDate = article.updated ? `Updated ${article.updated}` : article.date;
     articles.push(article);
 
     // Article Schema (enriched: dateModified, author entity, publisher)
@@ -280,7 +282,7 @@ mdFiles.forEach(file => {
     let html = articleTemplate
         .replace(/\{\{TITLE\}\}/g, article.title)
         .replace(/\{\{DESCRIPTION\}\}/g, article.description)
-        .replace(/\{\{DATE\}\}/g, article.date)
+        .replace(/\{\{DATE\}\}/g, article.displayDate)
         .replace(/\{\{CONTENT\}\}/g, article.content)
         .replace(/\{\{STORE_CTA\}\}/g, storeCta)
         .replace(/\{\{TOC\}\}/g, article.toc || '')
@@ -291,7 +293,8 @@ mdFiles.forEach(file => {
         .replace(/\{\{KEYWORDS\}\}/g, article.keywords.join(', '))
         .replace(/\{\{SLUG\}\}/g, article.slug)
         .replace(/\{\{IMAGE\}\}/g, article.image || 'https://voiceprompter.app/og-image.png')
-        .replace(/\{\{JSON_LD_SCHEMA\}\}/g, jsonLdBlock);
+        .replace(/\{\{JSON_LD_SCHEMA\}\}/g, jsonLdBlock)
+        .replace(/[ \t]+$/gm, '');
 
     // Write HTML file
     const outputPath = path.join(BLOG_DIR, `${slug}.html`);
@@ -299,15 +302,16 @@ mdFiles.forEach(file => {
     console.log(`✓ Generated ${slug}.html`);
 });
 
-// Sort articles by date (newest first)
-articles.sort((a, b) => new Date(b.date) - new Date(a.date));
+// Sort by the freshest meaningful date so substantial updates return to the
+// top of the hub and receive strong discovery links.
+articles.sort((a, b) => new Date(b.modifiedIso) - new Date(a.modifiedIso));
 
 // Generate blog index HTML for SEO
 const articleCards = articles.map(article => `
             <a href="/blog/${article.slug}.html" class="article-card">
                 <img src="${article.image || 'https://voiceprompter.app/og-image.png'}" alt="${article.title.replace(/"/g, '&quot;')}" class="article-thumb" loading="lazy">
                 <div class="article-body">
-                    <div class="article-date">${article.date}</div>
+                    <div class="article-date">${article.displayDate}</div>
                     <h2 class="article-title">${article.title}</h2>
                     <p class="article-desc">${article.description}</p>
                     <span class="article-cta">Read article →</span>
@@ -339,7 +343,8 @@ const blogSchema = [
             "@type": "BlogPosting",
             "headline": a.title,
             "url": `https://voiceprompter.app/blog/${a.slug}.html`,
-            "datePublished": a.isoDate || undefined
+            "datePublished": a.isoDate || undefined,
+            "dateModified": a.modifiedIso || a.isoDate || undefined
         }))
     },
     {
