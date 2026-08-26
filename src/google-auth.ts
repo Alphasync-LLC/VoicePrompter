@@ -6,7 +6,7 @@ interface GoogleCredentialResponse {
 }
 
 interface GoogleIdentityApi {
-    initialize(configuration: { client_id: string; callback: (response: GoogleCredentialResponse) => void }): void;
+    initialize(configuration: { client_id: string; auto_select?: boolean; callback: (response: GoogleCredentialResponse) => void }): void;
     renderButton(parent: HTMLElement, options: Record<string, string | number | boolean>): void;
     prompt(): void;
 }
@@ -72,6 +72,7 @@ export async function renderGoogleSignIn(
         const identity = await googleIdentity();
         identity.initialize({
             client_id: configuredClientId,
+            auto_select: false,
             callback: (response) => {
                 if (!response.credential) {
                     onError?.(new Error('Google did not return an identity credential'));
@@ -101,6 +102,7 @@ export async function promptGoogleSignIn(
         const identity = await googleIdentity();
         identity.initialize({
             client_id: configuredClientId,
+            auto_select: false,
             callback: (response) => {
                 if (!response.credential) {
                     onError?.(new Error('Google did not return an identity credential'));

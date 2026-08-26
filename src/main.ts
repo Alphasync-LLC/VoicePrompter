@@ -12,7 +12,7 @@ import { detectAll } from 'tinyld/light';
 import { fetchGoogleDocText } from './gdoc';
 import { enumerateAndPopulateDevices } from './devices';
 import { detectVisitorPlatform, getNativePromo } from './platform-promo';
-import { promptGoogleSignIn } from './google-auth';
+import { renderGoogleSignIn } from './google-auth';
 
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
@@ -304,12 +304,30 @@ async function deleteLibraryScript(script: ScriptLibraryItem): Promise<void> {
     if (activeScriptId === script.id) activeScriptId = undefined;
     await renderLibrary();
 }
-
 async function requestGoogleSignIn(): Promise<void> {
-    await promptGoogleSignIn(async () => {
+    const button = els.scriptLibrarySignInBtn;
+    const parent = button.parentElement;
+    if (!parent) return;
+
+    button.classList.add('hidden');
+    const chooser = document.createElement('div');
+    parent.appendChild(chooser);
+    const restore = () => {
+        chooser.remove();
+        button.classList.remove('hidden');
+    };
+    const rendered = await renderGoogleSignIn(chooser, async () => {
+        restore();
         await syncScripts();
         await renderLibrary();
-    }, () => { void renderLibrary(); });
+    }, (error) => {
+        restore();
+        els.scriptLibrarySyncStatus.textContent = `Sign-in failed: ${error.message}`;
+    });
+    if (!rendered) {
+        restore();
+        els.scriptLibrarySyncStatus.textContent = 'Google sign-in is unavailable. Refresh and try again.';
+    }
 }
 
 async function loadScript(text: string, googleDocUrl: string | null = null, scriptId?: string): Promise<void> {
