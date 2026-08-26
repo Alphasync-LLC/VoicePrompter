@@ -100,9 +100,11 @@ export interface ScriptSyncStatus {
     error?: string;
 }
 
+/** Session identity supplied by the sync gateway. Legacy Google sessions include `email`; password sessions include `username`. */
 export interface GatewayUser {
     id: string;
-    email: string;
+    email?: string;
+    username?: string;
     name?: string;
     picture?: string;
 }

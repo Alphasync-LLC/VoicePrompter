@@ -33,6 +33,11 @@ export interface CreateScriptInput {
     googleDocUrl?: string;
     tag?: string;
 }
+export interface PasswordCredentials {
+    username: string;
+    password: string;
+}
+
 
 function configuredGatewayUrl(): string | undefined {
     const value = import.meta.env.VITE_SYNC_GATEWAY_URL?.trim();
@@ -148,10 +153,10 @@ export class ScriptGatewayClient {
         await this.request<void>(`/v1/scripts/${encodeURIComponent(remoteId)}`, { method: 'DELETE' });
     }
 
-    async signInWithGoogle(idToken: string): Promise<GatewaySession> {
-        const response = await this.request<{ user?: GatewaySession['user'] }>('/v1/auth/google', {
+    async signInWithPassword(credentials: PasswordCredentials): Promise<GatewaySession> {
+        const response = await this.request<{ user?: GatewaySession['user'] }>('/v1/auth/password', {
             method: 'POST',
-            body: JSON.stringify({ idToken }),
+            body: JSON.stringify(credentials),
         });
         if (!response.user) throw new GatewayError('Gateway did not return a signed-in user');
         return { authenticated: true, user: response.user };

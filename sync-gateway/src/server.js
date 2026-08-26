@@ -1,16 +1,19 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, scrypt, timingSafeEqual } from "node:crypto";
 import { createServer } from "node:http";
-import { OAuth2Client } from "google-auth-library";
+import { promisify } from "node:util";
 import { createConvexScriptRepository, ScriptRepositoryError } from "./convex-script-repository.js";
 
 const SESSION_COOKIE = "__Host-voiceprompter_session";
 const JSON_BODY_LIMIT = 16 * 1024;
-const DEFAULT_SESSION_TTL_SECONDS = 7 * 24 * 60 * 60;
+const DEFAULT_SESSION_TTL_SECONDS = 8 * 60 * 60;
 const MAX_SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
 const DEVELOPMENT_ORIGINS = new Set([
   "http://localhost:5173",
   "http://127.0.0.1:5173",
 ]);
+const MAX_FAILED_PASSWORD_ATTEMPTS = 5;
+const PASSWORD_ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
+const scryptAsync = promisify(scrypt);
 
 function requiredEnv(name) {
   const value = process.env[name]?.trim();
@@ -30,6 +33,25 @@ function parseTtl(value) {
     throw new Error(`SESSION_TTL_SECONDS must be an integer from 60 to ${MAX_SESSION_TTL_SECONDS}`);
   }
   return ttl;
+}
+
+function parsePasswordScrypt(value) {
+  const [salt, derivedKey, ...rest] = value.split(":");
+  if (!salt || !derivedKey || rest.length > 0) {
+    throw new Error("AUTH_PASSWORD_SCRYPT must be formatted as salt:derivedKey");
+  }
+
+  const saltBuffer = Buffer.from(salt, "base64url");
+  const derivedKeyBuffer = Buffer.from(derivedKey, "base64url");
+  if (
+    saltBuffer.length === 0 ||
+    derivedKeyBuffer.length === 0 ||
+    saltBuffer.toString("base64url") !== salt ||
+    derivedKeyBuffer.toString("base64url") !== derivedKey
+  ) {
+    throw new Error("AUTH_PASSWORD_SCRYPT must contain base64url salt and derivedKey values");
+  }
+  return { salt: saltBuffer, derivedKey: derivedKeyBuffer };
 }
 
 function configuredOrigins() {
@@ -57,7 +79,8 @@ function configuredOrigins() {
 }
 
 const config = {
-  googleClientId: requiredEnv("GOOGLE_CLIENT_ID"),
+  authUsername: requiredEnv("AUTH_USERNAME"),
+  passwordScrypt: parsePasswordScrypt(requiredEnv("AUTH_PASSWORD_SCRYPT")),
   sessionSecret: requiredEnv("SESSION_SECRET"),
   convexPrivateUrl: requiredEnv("CONVEX_PRIVATE_URL"),
   convexAdminKey: requiredEnv("CONVEX_ADMIN_KEY"),
@@ -73,7 +96,7 @@ if (!Number.isSafeInteger(config.port) || config.port < 1 || config.port > 65535
   throw new Error("PORT must be a valid TCP port");
 }
 
-const googleClient = new OAuth2Client(config.googleClientId);
+const failedPasswordAttempts = new Map();
 const scripts = createConvexScriptRepository({
   url: config.convexPrivateUrl,
   adminKey: config.convexAdminKey,
@@ -90,10 +113,8 @@ function signature(payload) {
 function signSession(user) {
   const now = Math.floor(Date.now() / 1000);
   const payload = encode({
-    sub: user.id,
-    email: user.email,
-    name: user.name,
-    picture: user.picture,
+    sub: user.username,
+    username: user.username,
     iat: now,
     exp: now + config.sessionTtlSeconds,
   });
@@ -116,7 +137,8 @@ function verifySession(token) {
     if (
       !session ||
       typeof session.sub !== "string" ||
-      typeof session.email !== "string" ||
+      typeof session.username !== "string" ||
+      session.sub !== session.username ||
       !Number.isSafeInteger(session.iat) ||
       !Number.isSafeInteger(session.exp) ||
       session.iat > now ||
@@ -202,37 +224,61 @@ async function readJson(request) {
 function publicUser(session) {
   return {
     id: session.sub,
-    email: session.email,
-    name: typeof session.name === "string" ? session.name : undefined,
-    picture: typeof session.picture === "string" ? session.picture : undefined,
+    username: session.username,
   };
 }
 
-async function authenticateGoogle(idToken) {
-  if (typeof idToken !== "string" || idToken.length === 0 || idToken.length > 10_000) {
-    const error = new Error("idToken is required");
+function clientIp(request) {
+  return request.socket.remoteAddress ?? "unknown";
+}
+
+function passwordRetryAfter(ip, now) {
+  const attempt = failedPasswordAttempts.get(ip);
+  if (!attempt) return 0;
+  if (attempt.expiresAt <= now) {
+    failedPasswordAttempts.delete(ip);
+    return 0;
+  }
+  return attempt.count >= MAX_FAILED_PASSWORD_ATTEMPTS
+    ? Math.max(1, Math.ceil((attempt.expiresAt - now) / 1000))
+    : 0;
+}
+
+function recordFailedPasswordAttempt(ip, now) {
+  const existing = failedPasswordAttempts.get(ip);
+  if (existing && existing.expiresAt > now) {
+    existing.count += 1;
+    return;
+  }
+  failedPasswordAttempts.set(ip, { count: 1, expiresAt: now + PASSWORD_ATTEMPT_WINDOW_MS });
+}
+
+function equalBuffers(left, right) {
+  return left.length === right.length && timingSafeEqual(left, right);
+}
+
+async function authenticatePassword(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    const error = new Error("Request body must be an object");
+    error.status = 400;
+    throw error;
+  }
+  if (
+    typeof body.username !== "string" ||
+    body.username.length === 0 ||
+    body.username.length > 128 ||
+    typeof body.password !== "string" ||
+    body.password.length > 1024
+  ) {
+    const error = new Error("username and password must be valid strings");
     error.status = 400;
     throw error;
   }
 
-  // verifyIdToken validates Google's signing keys, issuer, expiration, and this audience.
-  const ticket = await googleClient.verifyIdToken({
-    idToken,
-    audience: config.googleClientId,
-  });
-  const payload = ticket.getPayload();
-  if (!payload?.sub || !payload.email || !payload.email_verified) {
-    const error = new Error("Google account must have a verified email");
-    error.status = 401;
-    throw error;
-  }
-
-  return {
-    id: payload.sub,
-    email: payload.email,
-    name: payload.name,
-    picture: payload.picture,
-  };
+  const derivedKey = await scryptAsync(body.password, config.passwordScrypt.salt, config.passwordScrypt.derivedKey.length);
+  const passwordMatches = equalBuffers(derivedKey, config.passwordScrypt.derivedKey);
+  const usernameMatches = equalBuffers(Buffer.from(body.username), Buffer.from(config.authUsername));
+  return passwordMatches && usernameMatches ? { username: config.authUsername } : null;
 }
 function scriptRoute(pathname) {
   if (pathname === "/v1/scripts") {
@@ -254,7 +300,7 @@ function scriptRoute(pathname) {
 
 function allowedMethods(pathname) {
   if (pathname === "/v1/auth/session") return ["GET", "OPTIONS"];
-  if (pathname === "/v1/auth/google" || pathname === "/v1/auth/logout") return ["POST", "OPTIONS"];
+  if (pathname === "/v1/auth/password" || pathname === "/v1/auth/logout") return ["POST", "OPTIONS"];
   return scriptRoute(pathname)?.methods ?? null;
 }
 
@@ -431,7 +477,7 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    if (pathname === "/v1/auth/google") {
+    if (pathname === "/v1/auth/password") {
       if (method !== "POST") {
         sendJson(response, 405, { error: "Method not allowed" }, { Allow: "POST, OPTIONS" });
         return;
@@ -444,14 +490,24 @@ const server = createServer(async (request, response) => {
         sendJson(response, 415, { error: "Content-Type must be application/json" });
         return;
       }
-      const body = await readJson(request);
-      if (!body || typeof body !== "object" || Array.isArray(body)) {
-        const error = new Error("Request body must be an object");
-        error.status = 400;
-        throw error;
+
+      const ip = clientIp(request);
+      const now = Date.now();
+      const retryAfter = passwordRetryAfter(ip, now);
+      if (retryAfter) {
+        sendJson(response, 429, { error: "Too many failed sign-in attempts" }, { "Retry-After": String(retryAfter) });
+        return;
       }
-      const user = await authenticateGoogle(body.idToken);
-      sendJson(response, 200, { user }, { "Set-Cookie": serializeSessionCookie(signSession(user)) });
+
+      const user = await authenticatePassword(await readJson(request));
+      if (!user) {
+        recordFailedPasswordAttempt(ip, now);
+        sendJson(response, 401, { error: "Invalid username or password" });
+        return;
+      }
+      failedPasswordAttempts.delete(ip);
+      const session = { sub: user.username, username: user.username };
+      sendJson(response, 200, { user: publicUser(session) }, { "Set-Cookie": serializeSessionCookie(signSession(user)) });
       return;
     }
 
