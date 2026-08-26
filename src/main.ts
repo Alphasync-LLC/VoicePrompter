@@ -279,6 +279,7 @@ async function renderLibrary(): Promise<void> {
     els.scriptLibrarySearch.oninput = () => { void renderLibrary(); };
 }
 async function openLibraryScript(script: ScriptLibraryItem): Promise<void> {
+    cancelPendingAutosave();
     const selected = await getScript(script.id);
     if (!selected) {
         await renderLibrary();
@@ -488,6 +489,7 @@ els.loadScriptBtn.addEventListener('click', () => {
     loadScript(els.inputScript.value);
 });
 els.saveCurrentScriptBtn.addEventListener('click', async () => {
+    cancelPendingAutosave();
     const content = els.inputScript.value.trim();
     if (!content) return;
     const saved = await createScript(content, {
@@ -500,17 +502,34 @@ els.saveCurrentScriptBtn.addEventListener('click', async () => {
 // Clear Script Button
 els.clearScriptBtn.addEventListener('click', () => {
     (window as any).umami?.track('clear-script');
+    cancelPendingAutosave();
     els.inputScript.value = '';
     activeScriptId = undefined;
     els.inputScript.focus();
 });
-// Auto-save on every edit (debounced so typing doesn't hammer Convex)
+// Auto-save captures the exact record and text being edited. A delayed edit
+// must never be applied after the user switches to another library script.
 let autosaveTimer: number | null = null;
+function cancelPendingAutosave(): void {
+    if (autosaveTimer !== null) window.clearTimeout(autosaveTimer);
+    autosaveTimer = null;
+}
 els.inputScript.addEventListener('input', () => {
-    clearTimeout(autosaveTimer ?? undefined);
-    autosaveTimer = setTimeout(() => {
-        const text = els.inputScript.value.trim();
-        if (text) void saveActiveScript(text);
+    cancelPendingAutosave();
+    const scriptId = activeScriptId;
+    const content = els.inputScript.value.trim();
+    const googleDocUrl = state.googleDocUrl;
+    autosaveTimer = window.setTimeout(() => {
+        autosaveTimer = null;
+        if (!content || activeScriptId !== scriptId || els.inputScript.value.trim() !== content) return;
+        if (scriptId) {
+            void updateScript(scriptId, {
+                content,
+                ...(googleDocUrl ? { googleDocUrl } : {}),
+            });
+        } else {
+            void saveActiveScript(content, googleDocUrl);
+        }
     }, 600);
 });
 
