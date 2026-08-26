@@ -227,20 +227,22 @@ function showLangDetectionWarning() {
 // --- Main Logic ---
 
 let activeScriptId: string | undefined;
+let signedInEmail: string | undefined;
 
 function syncStatusLabel(status: ScriptSyncStatus): string {
+    const identity = signedInEmail ? `Signed in as ${signedInEmail}. ` : '';
     const pending = status.pendingChanges === 1 ? '1 change pending' : `${status.pendingChanges} changes pending`;
     switch (status.state) {
         case 'synced':
-            return status.pendingChanges ? `Synced. ${pending}.` : 'Synced across your devices.';
+            return status.pendingChanges ? `${identity}Synced. ${pending}.` : `${identity}Synced across your devices.`;
         case 'offline':
-            return status.pendingChanges ? `Saved on this device. ${pending}.` : 'Offline. Scripts remain available on this device.';
+            return status.pendingChanges ? `${identity}Saved on this device. ${pending}.` : `${identity}Offline. Scripts remain available on this device.`;
         case 'unauthenticated':
             return status.pendingChanges ? `Saved on this device. Sign in to sync ${pending}.` : 'Saved on this device. Sign in to sync your scripts.';
         case 'error':
-            return 'Saved on this device. Sync will retry when available.';
+            return `${identity}Saved on this device. Sync will retry when available.`;
         default:
-            return 'Saved on this device. Sign in to sync your scripts.';
+            return `${identity}Saved on this device. Sign in to sync your scripts.`;
     }
 }
 
@@ -316,12 +318,15 @@ async function requestGoogleSignIn(): Promise<void> {
         chooser.remove();
         button.classList.remove('hidden');
     };
-    const rendered = await renderGoogleSignIn(chooser, async () => {
+    const rendered = await renderGoogleSignIn(chooser, async (session) => {
+        signedInEmail = session.user?.email;
         restore();
+        els.scriptLibrarySyncStatus.textContent = signedInEmail
+            ? `Signed in as ${signedInEmail}. Syncing your scripts…`
+            : 'Signed in. Syncing your scripts…';
         await syncScripts();
         await renderLibrary();
     }, (error) => {
-        restore();
         els.scriptLibrarySyncStatus.textContent = `Sign-in failed: ${error.message}`;
     });
     if (!rendered) {
