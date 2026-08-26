@@ -42,9 +42,11 @@ export interface Elements {
     dismissAndroidVideoWarningBtn: HTMLElement;
     historyList: HTMLElement;
     historySection: HTMLElement;
+    scriptLibraryList: HTMLElement;
     scriptLibrarySearch: HTMLInputElement;
     scriptLibrarySyncStatus: HTMLElement;
     scriptLibrarySignInBtn: HTMLButtonElement;
+    saveCurrentScriptBtn: HTMLButtonElement;
     stopSignToggle: HTMLInputElement;
     alignBtns: {
         left: HTMLElement;
@@ -171,9 +173,11 @@ export function initElements(): void {
         dismissAndroidVideoWarningBtn: document.getElementById('dismissAndroidVideoWarningBtn')!,
         historyList: document.getElementById('historyList')!,
         historySection: document.getElementById('historySection')!,
+        scriptLibraryList: document.getElementById('scriptLibraryList')!,
         scriptLibrarySearch: document.getElementById('scriptLibrarySearch') as HTMLInputElement,
         scriptLibrarySyncStatus: document.getElementById('scriptLibrarySyncStatus')!,
         scriptLibrarySignInBtn: document.getElementById('scriptLibrarySignInBtn') as HTMLButtonElement,
+        saveCurrentScriptBtn: document.getElementById('saveCurrentScriptBtn') as HTMLButtonElement,
         stopSignToggle: document.getElementById('stopSignToggle') as HTMLInputElement,
         alignBtns: {
             left: document.getElementById('alignLeftBtn')!,

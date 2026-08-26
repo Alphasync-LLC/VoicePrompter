@@ -482,6 +482,12 @@ els.loadScriptBtn.addEventListener('click', () => {
     (window as any).umami?.track('start-teleprompter');
     loadScript(els.inputScript.value);
 });
+els.saveCurrentScriptBtn.addEventListener('click', async () => {
+    const saved = await saveActiveScript(els.inputScript.value);
+    if (!saved) return;
+    activeScriptId = saved.id;
+    await renderLibrary();
+});
 
 // Clear Script Button
 els.clearScriptBtn.addEventListener('click', () => {

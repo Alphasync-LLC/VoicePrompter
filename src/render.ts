@@ -415,13 +415,13 @@ export function renderScriptLibrary(items: readonly ScriptLibraryItem[], callbac
 
     els.scriptLibrarySyncStatus.textContent = callbacks.syncStatus ?? 'Saved on this device. Sign in to sync your scripts.';
     els.scriptLibrarySignInBtn.onclick = callbacks.onSignIn ?? null;
-    els.historyList.replaceChildren();
+    els.scriptLibraryList.replaceChildren();
 
     if (scripts.length === 0) {
         const empty = document.createElement('p');
         empty.className = 'col-span-full rounded-lg border border-dashed border-neutral-700 px-4 py-8 text-center text-sm text-neutral-500';
         empty.textContent = items.length === 0 ? 'No scripts yet. Your saved scripts will appear here.' : 'No scripts match your search.';
-        els.historyList.appendChild(empty);
+        els.scriptLibraryList.appendChild(empty);
     } else {
         for (const script of scripts) {
             const card = document.createElement('article');
@@ -468,27 +468,42 @@ export function renderScriptLibrary(items: readonly ScriptLibraryItem[], callbac
             actions.appendChild(libraryButton('Duplicate', `${actionClass} bg-neutral-800 text-neutral-200 hover:bg-neutral-700`, () => callbacks.onDuplicate?.(script)));
             actions.appendChild(libraryButton('Delete', `${actionClass} bg-red-500/10 text-red-300 hover:bg-red-500/20`, () => callbacks.onDelete?.(script)));
             card.appendChild(actions);
-            els.historyList.appendChild(card);
+            els.scriptLibraryList.appendChild(card);
         }
     }
 
     els.scriptLibrarySearch.oninput = () => renderScriptLibrary(items, callbacks);
 }
 
-/** Compatibility adapter for the existing history storage while callers migrate to stable scripts. */
+/** Renders legacy history as simple quick-open shortcuts below the Script Library. */
 export function renderHistoryList(history: HistoryItem[], onLoad: (text: string, googleDocUrl?: string | null) => void): void {
-    els.clearHistoryBtn.classList.toggle('hidden', history.length === 0);
-    renderScriptLibrary(history.map(item => ({
-        id: String(item.id),
-        title: item.preview || 'Untitled script',
-        content: item.text,
-        preview: item.preview,
-        updatedAt: Date.parse(item.date),
-        wordCount: item.text.trim() ? item.text.trim().split(/\s+/).length : 0,
-        isFavorite: false,
-        tag: item.tag,
-        googleDocUrl: item.googleDocUrl
-    })), {
-        onOpen: script => onLoad(script.content, script.googleDocUrl ?? null)
-    });
+    els.historyList.replaceChildren();
+
+    if (history.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'col-span-full rounded-lg border border-dashed border-neutral-800 px-4 py-5 text-center text-sm text-neutral-500';
+        empty.textContent = 'Recently opened scripts will appear here.';
+        els.historyList.appendChild(empty);
+        return;
+    }
+
+    for (const item of history) {
+        const shortcut = document.createElement('button');
+        shortcut.type = 'button';
+        shortcut.className = 'min-w-0 rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3 text-left transition hover:border-[#FFBB00]/70 focus:outline-none focus:ring-2 focus:ring-[#FFBB00]/70';
+        shortcut.setAttribute('aria-label', `Open recent script: ${item.preview || 'Untitled script'}`);
+        shortcut.addEventListener('click', () => onLoad(item.text, item.googleDocUrl ?? null));
+
+        const title = document.createElement('span');
+        title.className = 'block truncate text-sm font-medium text-white';
+        title.textContent = item.preview || 'Untitled script';
+        shortcut.appendChild(title);
+
+        const preview = document.createElement('span');
+        preview.className = 'mt-1 block line-clamp-2 text-xs leading-relaxed text-neutral-500';
+        preview.textContent = item.text.replace(/\s+/g, ' ').trim() || 'Empty script';
+        shortcut.appendChild(preview);
+
+        els.historyList.appendChild(shortcut);
+    }
 }

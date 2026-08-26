@@ -298,18 +298,30 @@
             <section id="historySection" class="mt-4 landscape:mt-2 border-t border-neutral-800 pt-6 landscape:pt-3" aria-labelledby="scriptLibraryHeading">
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
                     <div>
-                        <h3 id="scriptLibraryHeading" class="text-neutral-200 font-medium text-sm">Your scripts</h3>
+                        <h3 id="scriptLibraryHeading" class="text-neutral-200 font-medium text-sm">Script Library</h3>
                         <p id="scriptLibrarySyncStatus" class="mt-1 text-xs text-neutral-500" role="status" aria-live="polite">Saved on this device. Sign in to sync your scripts.</p>
                     </div>
                     <div class="flex items-center gap-3">
+                        <button id="saveCurrentScriptBtn" type="button" class="rounded bg-[#FFBB00] px-3 py-1.5 text-xs font-semibold text-neutral-900 transition hover:bg-[#FFD54F]">Save current script</button>
                         <button id="scriptLibrarySignInBtn" type="button" class="text-xs font-medium text-[#FFBB00] hover:text-[#FFD54F] transition-colors">Sign in to sync</button>
-                        <button id="clearHistoryBtn" type="button" class="text-xs text-red-400 hover:text-red-300 transition-colors hidden">Clear History</button>
+                        <button id="clearHistoryBtn" type="button" class="text-xs text-red-400 hover:text-red-300 transition-colors hidden">Clear Library</button>
                     </div>
                 </div>
                 <label class="sr-only" for="scriptLibrarySearch">Search your scripts</label>
                 <input id="scriptLibrarySearch" type="search" autocomplete="off" placeholder="Search scripts" class="mb-3 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white placeholder-neutral-500 outline-none transition focus:border-[#FFBB00] focus:ring-2 focus:ring-[#FFBB00]/30">
-                <div id="historyList" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-live="polite">
+                <div id="scriptLibraryList" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-live="polite">
                     <!-- Script cards are rendered by the application. -->
+                </div>
+            </section>
+
+            <!-- Recent Scripts -->
+            <section id="recentScriptsSection" class="border-t border-neutral-800 pt-6 landscape:pt-3" aria-labelledby="recentScriptsHeading">
+                <div class="mb-4">
+                    <h3 id="recentScriptsHeading" class="text-neutral-200 font-medium text-sm">Recent Scripts</h3>
+                    <p class="mt-1 text-xs text-neutral-500">Quickly reopen a recently used script.</p>
+                </div>
+                <div id="historyList" class="grid grid-cols-1 gap-2 sm:grid-cols-2" aria-live="polite">
+                    <!-- Recent script shortcuts are rendered by the application. -->
                 </div>
             </section>
         </main>
