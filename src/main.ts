@@ -236,7 +236,9 @@ function syncStatusLabel(status: ScriptSyncStatus): string {
         case 'synced':
             return status.pendingChanges ? `${identity}Synced. ${pending}.` : `${identity}Synced across your devices.`;
         case 'offline':
-            return status.pendingChanges ? `${identity}Saved on this device. ${pending}.` : `${identity}Offline. Scripts remain available on this device.`;
+            return status.error
+                ? `${identity}Sync failed: ${status.error}. Use Sync now to retry.`
+                : status.pendingChanges ? `${identity}Saved on this device. ${pending}.` : `${identity}Offline. Scripts remain available on this device.`;
         case 'unauthenticated':
             return status.pendingChanges ? `Saved on this device. Sign in to sync ${pending}.` : 'Saved on this device. Sign in to sync your scripts.';
         case 'error':
