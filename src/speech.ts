@@ -1,6 +1,7 @@
 import { state } from './state';
 import { els } from './elements';
 import { updateMicUI, updateHighlight, scrollToCurrent, advancePastSkipped, restartScript, navigateParagraphs } from './render';
+import { findOrderedMatchIndex } from './matching';
 
 // Track the last matched word to prevent matching the same word twice in a row
 let lastMatchedWord = '';
@@ -201,51 +202,28 @@ function matchWords(spokenWords: string[]) {
     if (state.currentIndex >= state.scriptWords.length) return;
     if (spokenWords.length === 0) return;
 
-    const LOOKAHEAD = state.config.lookaheadWords;
-
-    // Create a Set of cleaned spoken words for fast lookup
-    const spokenSet = new Set(
-        spokenWords
-            .map(w => w.replace(/[^\p{L}\p{N}]/gu, "").toLowerCase())
-            .filter(w => w.length > 0)
+    const matchIndex = findOrderedMatchIndex(
+        state.scriptWords,
+        state.currentIndex,
+        spokenWords,
+        { forwardWindow: Math.max(0, state.config.lookaheadWords - 1) },
     );
 
-    if (spokenSet.size === 0) return;
+    if (matchIndex === null) return;
 
-    // Iterate through SCRIPT words from nearest to farthest
-    // This ensures we always advance to the nearest matching word
-    let scriptPtr = state.currentIndex;
-    let validWordsChecked = 0;
+    const matchedWord = state.scriptWords[matchIndex];
+    if (matchedWord.clean === lastMatchedWord && matchIndex !== state.currentIndex) {
+        if (matchIndex < state.currentIndex) return;
 
-    while (scriptPtr < state.scriptWords.length && validWordsChecked < LOOKAHEAD) {
-        const scriptWordObj = state.scriptWords[scriptPtr];
-
-        if (scriptWordObj.skip) {
-            scriptPtr++;
-            continue;
+        for (let index = state.currentIndex; index < matchIndex; index++) {
+            if (!state.scriptWords[index].skip) return;
         }
-
-        // Check if this script word was spoken
-        if (spokenSet.has(scriptWordObj.clean)) {
-            // Prevent matching the same word twice in a row (prevents double-jump)
-            // But allow it if it's at the current position (position 0 in lookahead)
-            if (scriptWordObj.clean === lastMatchedWord && validWordsChecked > 0) {
-                // Same word as last match, and not at current position - skip it
-                scriptPtr++;
-                validWordsChecked++;
-                continue;
-            }
-
-            lastMatchedWord = scriptWordObj.clean;
-            state.currentIndex = scriptPtr + 1;
-            advancePastSkipped();
-            updateHighlight();
-            scrollToCurrent();
-            return;
-        }
-
-        scriptPtr++;
-        validWordsChecked++;
     }
+
+    lastMatchedWord = matchedWord.clean;
+    state.currentIndex = matchIndex + 1;
+    advancePastSkipped();
+    updateHighlight();
+    scrollToCurrent();
 }
 

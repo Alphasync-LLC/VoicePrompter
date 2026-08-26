@@ -26,6 +26,8 @@ export interface Elements {
     micButton: HTMLElement;
     micIcon: HTMLElement;
     statusIndicator: HTMLElement;
+    sessionProgress: HTMLOutputElement;
+    remainingTime: HTMLOutputElement;
     mirrorToggle: HTMLInputElement;
     mirrorModeLabel: HTMLElement;
     hMirrorRow: HTMLElement;
@@ -40,6 +42,9 @@ export interface Elements {
     dismissAndroidVideoWarningBtn: HTMLElement;
     historyList: HTMLElement;
     historySection: HTMLElement;
+    scriptLibrarySearch: HTMLInputElement;
+    scriptLibrarySyncStatus: HTMLElement;
+    scriptLibrarySignInBtn: HTMLButtonElement;
     stopSignToggle: HTMLInputElement;
     alignBtns: {
         left: HTMLElement;
@@ -56,6 +61,8 @@ export interface Elements {
     resetAppBtn: HTMLElement;
     restartScriptBtn: HTMLElement;
     toggleSettingsBtn: HTMLElement;
+    previousParagraphBtn: HTMLButtonElement;
+    nextParagraphBtn: HTMLButtonElement;
     closeSettingsBtn: HTMLElement;
     themeDarkBtn: HTMLElement;
     themeLightBtn: HTMLElement;
@@ -148,6 +155,8 @@ export function initElements(): void {
         micButton: document.getElementById('micButton')!,
         micIcon: document.getElementById('micIcon')!,
         statusIndicator: document.getElementById('statusIndicator')!,
+        sessionProgress: document.getElementById('sessionProgress') as HTMLOutputElement,
+        remainingTime: document.getElementById('remainingTime') as HTMLOutputElement,
         mirrorToggle: document.getElementById('mirrorToggle') as HTMLInputElement,
         mirrorModeLabel: document.getElementById('mirrorModeLabel')!,
         hMirrorRow: document.getElementById('hMirrorRow')!,
@@ -162,6 +171,9 @@ export function initElements(): void {
         dismissAndroidVideoWarningBtn: document.getElementById('dismissAndroidVideoWarningBtn')!,
         historyList: document.getElementById('historyList')!,
         historySection: document.getElementById('historySection')!,
+        scriptLibrarySearch: document.getElementById('scriptLibrarySearch') as HTMLInputElement,
+        scriptLibrarySyncStatus: document.getElementById('scriptLibrarySyncStatus')!,
+        scriptLibrarySignInBtn: document.getElementById('scriptLibrarySignInBtn') as HTMLButtonElement,
         stopSignToggle: document.getElementById('stopSignToggle') as HTMLInputElement,
         alignBtns: {
             left: document.getElementById('alignLeftBtn')!,
@@ -178,6 +190,8 @@ export function initElements(): void {
         resetAppBtn: document.getElementById('resetAppBtn')!,
         restartScriptBtn: document.getElementById('restartScriptBtn')!,
         toggleSettingsBtn: document.getElementById('toggleSettingsBtn')!,
+        previousParagraphBtn: document.getElementById('previousParagraphBtn') as HTMLButtonElement,
+        nextParagraphBtn: document.getElementById('nextParagraphBtn') as HTMLButtonElement,
         closeSettingsBtn: document.getElementById('closeSettingsBtn')!,
         themeDarkBtn: document.getElementById('themeDarkBtn')!,
         themeLightBtn: document.getElementById('themeLightBtn')!,

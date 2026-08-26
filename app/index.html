@@ -294,18 +294,24 @@
                 <div id="languageSelectContainer" class="relative"></div>
             </div>
 
-            <!-- History Section -->
-            <div id="historySection" class="mt-4 landscape:mt-2 border-t border-neutral-800 pt-6 landscape:pt-3">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-neutral-400 font-medium text-sm">Recent scripts</h3>
-                    <button id="clearHistoryBtn"
-                        class="text-xs text-red-400 hover:text-red-300 transition-colors hidden">Clear History</button>
+            <!-- Script Library -->
+            <section id="historySection" class="mt-4 landscape:mt-2 border-t border-neutral-800 pt-6 landscape:pt-3" aria-labelledby="scriptLibraryHeading">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                    <div>
+                        <h3 id="scriptLibraryHeading" class="text-neutral-200 font-medium text-sm">Your scripts</h3>
+                        <p id="scriptLibrarySyncStatus" class="mt-1 text-xs text-neutral-500" role="status" aria-live="polite">Saved on this device. Sign in to sync your scripts.</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button id="scriptLibrarySignInBtn" type="button" class="text-xs font-medium text-[#FFBB00] hover:text-[#FFD54F] transition-colors">Sign in to sync</button>
+                        <button id="clearHistoryBtn" type="button" class="text-xs text-red-400 hover:text-red-300 transition-colors hidden">Clear History</button>
+                    </div>
                 </div>
-                <div id="historyList"
-                    class="flex overflow-x-auto gap-3 pb-2 md:grid md:grid-cols-2 md:gap-3 md:max-h-48 md:overflow-y-auto md:pb-0 no-scrollbar snap-x">
-                    <!-- History items will be injected here -->
+                <label class="sr-only" for="scriptLibrarySearch">Search your scripts</label>
+                <input id="scriptLibrarySearch" type="search" autocomplete="off" placeholder="Search scripts" class="mb-3 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white placeholder-neutral-500 outline-none transition focus:border-[#FFBB00] focus:ring-2 focus:ring-[#FFBB00]/30">
+                <div id="historyList" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-live="polite">
+                    <!-- Script cards are rendered by the application. -->
                 </div>
-            </div>
+            </section>
         </main>
     </div>
 
@@ -314,6 +320,16 @@
 
         <!-- Scroll Wrapper -->
         <div id="scrollWrapper" class="h-full w-full relative flex flex-col flex-grow min-h-0">
+            <!-- Session HUD: placed in the top spacer so it never covers script words. -->
+            <div id="sessionHud"
+                class="absolute top-3 left-1/2 z-20 max-w-[calc(100vw-1.5rem)] -translate-x-1/2 pointer-events-none max-[420px]:max-w-[calc(100vw-7rem)]">
+                <div class="flex items-center gap-2 rounded-full border border-neutral-700/70 bg-black/45 px-3 py-1.5 text-xs font-medium text-neutral-300 backdrop-blur-sm shadow-lg">
+                    <output id="sessionProgress" aria-label="Script progress">0 of 0 words</output>
+                    <span class="text-neutral-600" aria-hidden="true">•</span>
+                    <output id="remainingTime" aria-label="Remaining time">Time remaining unavailable in voice mode</output>
+                </div>
+            </div>
+
             <!-- Scroll Container -->
             <div id="scrollContainer" class="flex-grow overflow-y-auto no-scrollbar relative scroll-smooth h-full w-full">
                 <div id="topSpacer" class="h-[45vh]"></div>
@@ -389,6 +405,16 @@
                         d="M11 17l-5-5m0 0l5-5m-5 5h12" />
                 </svg>
             </button>
+            <!-- Previous Paragraph -->
+            <button id="previousParagraphBtn"
+                class="pointer-events-auto p-3 rounded-full bg-neutral-800/80 backdrop-blur text-neutral-400 hover:text-white hover:bg-neutral-700 transition-all max-[420px]:fixed max-[420px]:left-3 max-[420px]:top-3 max-[420px]:z-[10000] max-[420px]:p-2"
+                title="Previous paragraph" aria-label="Previous paragraph">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+            </button>
+
 
             <!-- Mic Button -->
             <button id="micButton"
@@ -414,6 +440,16 @@
                         d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
             </button>
+            <!-- Next Paragraph -->
+            <button id="nextParagraphBtn"
+                class="pointer-events-auto p-3 rounded-full bg-neutral-800/80 backdrop-blur text-neutral-400 hover:text-white hover:bg-neutral-700 transition-all max-[420px]:fixed max-[420px]:right-3 max-[420px]:top-3 max-[420px]:z-[10000] max-[420px]:p-2"
+                title="Next paragraph" aria-label="Next paragraph">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
+
 
             <!-- Video Mode Toggle -->
             <button id="videoModeBtn"

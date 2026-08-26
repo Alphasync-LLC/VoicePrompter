@@ -59,10 +59,55 @@ export interface AppState {
 }
 
 export interface HistoryItem {
-    id: number;
+    id: string | number;
     text: string;
     preview: string;
     date: string;
     tag?: string;
     googleDocUrl?: string;
+}
+
+/** A locally stable script entity. `remoteId` is the gateway's opaque ID once synced. */
+export interface Script {
+    id: string;
+    remoteId?: string;
+    title: string;
+    content: string;
+    preview: string;
+    createdAt: number;
+    updatedAt: number;
+    googleDocUrl?: string;
+    wordCount: number;
+    isFavorite: boolean;
+    tag?: string;
+}
+
+export interface ScriptPatch {
+    title?: string;
+    content?: string;
+    googleDocUrl?: string;
+    tag?: string;
+    isFavorite?: boolean;
+}
+
+export type ScriptSyncState = 'synced' | 'offline' | 'unauthenticated' | 'unavailable' | 'error';
+
+export interface ScriptSyncStatus {
+    state: ScriptSyncState;
+    pendingChanges: number;
+    storage: 'indexeddb' | 'localstorage' | 'memory';
+    lastSyncedAt?: number;
+    error?: string;
+}
+
+export interface GatewayUser {
+    id: string;
+    email: string;
+    name?: string;
+    picture?: string;
+}
+
+export interface GatewaySession {
+    authenticated: boolean;
+    user?: GatewayUser;
 }

@@ -1,6 +1,82 @@
 import { els } from './elements';
 import { state } from './state';
-import { HistoryItem } from './types';
+import { HistoryItem, Script, ScriptWord, ScrollingMode } from './types';
+
+export interface SessionProgressInput {
+    words: ReadonlyArray<Pick<ScriptWord, 'skip'>>;
+    currentIndex: number;
+    mode: ScrollingMode;
+    speed: number;
+}
+
+export interface SessionProgress {
+    completedSpeakableWords: number;
+    totalSpeakableWords: number;
+    remainingSpeakableWords: number;
+    percentComplete: number;
+    progressText: string;
+    remainingTimeText: string;
+}
+
+function formatDuration(seconds: number): string {
+    const roundedSeconds = Math.max(0, Math.ceil(seconds));
+    const minutes = Math.floor(roundedSeconds / 60);
+    const remainingSeconds = roundedSeconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
+/** Derives HUD content without treating skipped cues or paragraph markers as spoken words. */
+export function deriveSessionProgress({ words, currentIndex, mode, speed }: SessionProgressInput): SessionProgress {
+    const boundedIndex = Number.isFinite(currentIndex)
+        ? Math.max(0, Math.min(Math.trunc(currentIndex), words.length))
+        : 0;
+    let completedSpeakableWords = 0;
+    let totalSpeakableWords = 0;
+
+    for (let index = 0; index < words.length; index++) {
+        if (words[index].skip) continue;
+
+        totalSpeakableWords++;
+        if (index < boundedIndex) completedSpeakableWords++;
+    }
+
+    const remainingSpeakableWords = totalSpeakableWords - completedSpeakableWords;
+    const percentComplete = totalSpeakableWords === 0
+        ? 0
+        : (completedSpeakableWords / totalSpeakableWords) * 100;
+    const progressText = totalSpeakableWords === 0
+        ? 'No speakable words'
+        : `${completedSpeakableWords} of ${totalSpeakableWords} words`;
+    const remainingTimeText = mode === 'voice'
+        ? 'Time remaining unavailable in voice mode'
+        : speed > 0 && Number.isFinite(speed)
+            ? `Time remaining: ${formatDuration(remainingSpeakableWords / speed)}`
+            : 'Time remaining unavailable until a speed is set';
+
+    return {
+        completedSpeakableWords,
+        totalSpeakableWords,
+        remainingSpeakableWords,
+        percentComplete,
+        progressText,
+        remainingTimeText
+    };
+}
+
+/** Updates the passive HUD. Callers may pass state-like data for deterministic rendering. */
+export function updateSessionHud(input: SessionProgressInput = {
+    words: state.scriptWords,
+    currentIndex: state.currentIndex,
+    mode: state.config.scrollingMode,
+    speed: state.config.scrollSpeed
+}): SessionProgress {
+    const progress = deriveSessionProgress(input);
+    els.sessionProgress.textContent = progress.progressText;
+    els.sessionProgress.setAttribute('aria-label', `Script progress: ${progress.progressText}`);
+    els.remainingTime.textContent = progress.remainingTimeText;
+    els.remainingTime.setAttribute('aria-label', progress.remainingTimeText);
+    return progress;
+}
 
 export function renderScript(): void {
     els.scriptContent.innerHTML = '';
@@ -88,6 +164,7 @@ export function updateHighlight(): void {
             }
         }
     });
+    updateSessionHud();
 }
 
 export function scrollToCurrent(): void {
@@ -298,41 +375,120 @@ export function updateMicUI(isListening: boolean): void {
     }
 }
 
-export function renderHistoryList(history: HistoryItem[], onLoad: (text: string, googleDocUrl?: string | null) => void): void {
-    els.historyList.innerHTML = '';
+export type ScriptLibraryItem = Pick<Script, 'id' | 'title' | 'content' | 'preview' | 'updatedAt' | 'wordCount' | 'isFavorite' | 'tag' | 'googleDocUrl'>;
 
-    if (history.length === 0) {
-        els.historyList.innerHTML = `
-            <div class="text-center py-8 border border-dashed border-neutral-800 rounded-lg text-neutral-600 text-sm">
-                No previous scripts found
-            </div>
-        `;
-        els.clearHistoryBtn.classList.add('hidden');
-        return;
+export interface ScriptLibraryCallbacks {
+    onOpen?: (script: ScriptLibraryItem) => void;
+    onRename?: (script: ScriptLibraryItem) => void;
+    onDuplicate?: (script: ScriptLibraryItem) => void;
+    onDelete?: (script: ScriptLibraryItem) => void;
+    onSignIn?: () => void;
+    syncStatus?: string;
+}
+
+function libraryButton(label: string, className: string, action: () => void): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = className;
+    button.textContent = label;
+    button.addEventListener('click', action);
+    return button;
+}
+
+
+function updatedLabel(updatedAt: number): string {
+    const date = new Date(updatedAt);
+    return Number.isNaN(date.getTime())
+        ? 'Updated recently'
+        : `Updated ${new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(date)}`;
+}
+
+/** Renders local or synced stable script entities without interpolating user content as HTML. */
+export function renderScriptLibrary(items: readonly ScriptLibraryItem[], callbacks: ScriptLibraryCallbacks = {}): void {
+    const query = els.scriptLibrarySearch.value.trim().toLocaleLowerCase();
+    const scripts = items.filter(script => {
+        if (!query) return true;
+        const preview = script.preview || script.content.replace(/\s+/g, ' ').trim() || 'Empty script';
+        return [script.title, preview, script.tag ?? '', script.content]
+            .some(value => value.toLocaleLowerCase().includes(query));
+    });
+
+    els.scriptLibrarySyncStatus.textContent = callbacks.syncStatus ?? 'Saved on this device. Sign in to sync your scripts.';
+    els.scriptLibrarySignInBtn.onclick = callbacks.onSignIn ?? null;
+    els.historyList.replaceChildren();
+
+    if (scripts.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'col-span-full rounded-lg border border-dashed border-neutral-700 px-4 py-8 text-center text-sm text-neutral-500';
+        empty.textContent = items.length === 0 ? 'No scripts yet. Your saved scripts will appear here.' : 'No scripts match your search.';
+        els.historyList.appendChild(empty);
+    } else {
+        for (const script of scripts) {
+            const card = document.createElement('article');
+            card.className = 'flex min-w-0 flex-col gap-3 rounded-lg border border-neutral-700 bg-neutral-900 p-4 shadow-sm transition hover:border-[#FFBB00]/70';
+
+            const heading = document.createElement('h4');
+            heading.className = 'min-w-0 truncate text-sm font-semibold text-white';
+            heading.textContent = script.title || 'Untitled script';
+            card.appendChild(heading);
+
+            const preview = document.createElement('p');
+            preview.className = 'line-clamp-2 text-sm leading-relaxed text-neutral-400';
+            preview.textContent = script.preview || script.content.replace(/\s+/g, ' ').trim() || 'Empty script';
+            card.appendChild(preview);
+
+            const metadata = document.createElement('div');
+            metadata.className = 'flex flex-wrap items-center gap-2 text-xs text-neutral-500';
+            const words = document.createElement('span');
+            words.textContent = `${script.wordCount} ${script.wordCount === 1 ? 'word' : 'words'}`;
+            metadata.appendChild(words);
+            const updated = document.createElement('span');
+            updated.textContent = updatedLabel(script.updatedAt);
+            metadata.appendChild(updated);
+            if (script.isFavorite) {
+                const favorite = document.createElement('span');
+                favorite.className = 'font-medium text-[#FFBB00]';
+                favorite.setAttribute('aria-label', 'Favorite script');
+                favorite.textContent = '★ Favorite';
+                metadata.appendChild(favorite);
+            }
+            if (script.tag) {
+                const tag = document.createElement('span');
+                tag.className = 'rounded-full bg-[#FFBB00]/10 px-2 py-0.5 font-medium text-[#FFBB00]';
+                tag.textContent = script.tag;
+                metadata.appendChild(tag);
+            }
+            card.appendChild(metadata);
+
+            const actions = document.createElement('div');
+            actions.className = 'flex flex-wrap gap-2 border-t border-neutral-800 pt-3';
+            const actionClass = 'rounded px-2.5 py-1.5 text-xs font-medium transition focus:outline-none focus:ring-2 focus:ring-[#FFBB00]/70';
+            actions.appendChild(libraryButton('Open', `${actionClass} bg-[#FFBB00] text-neutral-900 hover:bg-[#FFD54F]`, () => callbacks.onOpen?.(script)));
+            actions.appendChild(libraryButton('Rename', `${actionClass} bg-neutral-800 text-neutral-200 hover:bg-neutral-700`, () => callbacks.onRename?.(script)));
+            actions.appendChild(libraryButton('Duplicate', `${actionClass} bg-neutral-800 text-neutral-200 hover:bg-neutral-700`, () => callbacks.onDuplicate?.(script)));
+            actions.appendChild(libraryButton('Delete', `${actionClass} bg-red-500/10 text-red-300 hover:bg-red-500/20`, () => callbacks.onDelete?.(script)));
+            card.appendChild(actions);
+            els.historyList.appendChild(card);
+        }
     }
 
-    els.clearHistoryBtn.classList.remove('hidden');
+    els.scriptLibrarySearch.oninput = () => renderScriptLibrary(items, callbacks);
+}
 
-    history.forEach(item => {
-        const div = document.createElement('div');
-        div.className = "bg-neutral-800 p-3 rounded border border-neutral-700 hover:border-blue-500 cursor-pointer transition group flex justify-between items-center shadow-sm min-w-[85%] md:min-w-0 snap-center";
-        div.onclick = () => {
-            els.inputScript.value = item.text;
-            onLoad(item.text, item.googleDocUrl || null);
-        };
-        div.innerHTML = `
-            <div class="flex flex-col text-left overflow-hidden mr-2">
-                <span class="text-gray-300 text-sm font-medium truncate font-mono">${item.preview}</span>
-                <div class="flex items-center gap-2">
-                    <span class="text-gray-500 text-xs">${item.date}</span>
-                    ${item.tag ? `<span class="text-[9px] font-bold bg-[#FFBB00]/10 text-[#FFBB00] px-1.5 py-0.5 rounded-full uppercase tracking-wider">${item.tag}</span>` : ''}
-                    ${item.googleDocUrl ? `<span class="text-[9px] font-bold bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded-full uppercase tracking-wider">Google Doc</span>` : ''}
-                </div>
-            </div>
-            <div class="flex-shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-blue-500 opacity-0 group-hover:opacity-100 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-            </div>
-        `;
-        els.historyList.appendChild(div);
+/** Compatibility adapter for the existing history storage while callers migrate to stable scripts. */
+export function renderHistoryList(history: HistoryItem[], onLoad: (text: string, googleDocUrl?: string | null) => void): void {
+    els.clearHistoryBtn.classList.toggle('hidden', history.length === 0);
+    renderScriptLibrary(history.map(item => ({
+        id: String(item.id),
+        title: item.preview || 'Untitled script',
+        content: item.text,
+        preview: item.preview,
+        updatedAt: Date.parse(item.date),
+        wordCount: item.text.trim() ? item.text.trim().split(/\s+/).length : 0,
+        isFavorite: false,
+        tag: item.tag,
+        googleDocUrl: item.googleDocUrl
+    })), {
+        onOpen: script => onLoad(script.content, script.googleDocUrl ?? null)
     });
 }

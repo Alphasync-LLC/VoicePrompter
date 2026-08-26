@@ -1,0 +1,15 @@
+{
+  "name": "voiceprompter-sync-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "google-auth-library": "^10.6.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -2,16 +2,17 @@ import './style.css';
 import { registerSW } from 'virtual:pwa-register';
 import { initElements, els } from './elements';
 import { state } from './state';
-import { renderScript, updateHighlight, scrollToCurrent, applySettings, renderHistoryList, restartScript } from './render';
+import { renderScript, updateHighlight, scrollToCurrent, applySettings, renderScriptLibrary, restartScript, navigateParagraphs, ScriptLibraryItem } from './render';
 import { initSpeech, startListening, stopListening } from './speech';
 import { autoScrollManager } from './autoscroll';
-import { saveToHistory, getHistory, clearAllHistory } from './storage';
-import { ScriptWord, ScrollingMode } from './types';
+import { clearAllHistory, createScript, deleteScript, duplicateScript, getScriptSyncStatus, loadScripts, searchScripts, syncScripts, updateScript } from './storage';
+import { Script, ScriptSyncStatus, ScriptWord, ScrollingMode } from './types';
 import { enterVideoMode, exitVideoMode, toggleVideoLayout, startRecording, stopRecording, flipCamera, getMediaConstraints } from './video';
 import { detectAll } from 'tinyld/light';
 import { fetchGoogleDocText } from './gdoc';
 import { enumerateAndPopulateDevices } from './devices';
 import { detectVisitorPlatform, getNativePromo } from './platform-promo';
+import { promptGoogleSignIn } from './google-auth';
 
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
@@ -225,16 +226,97 @@ function showLangDetectionWarning() {
 
 // --- Main Logic ---
 
-function loadScript(text: string, googleDocUrl: string | null = null): void {
+let activeScriptId: string | undefined;
+
+function syncStatusLabel(status: ScriptSyncStatus): string {
+    const pending = status.pendingChanges === 1 ? '1 change pending' : `${status.pendingChanges} changes pending`;
+    switch (status.state) {
+        case 'synced':
+            return status.pendingChanges ? `Synced. ${pending}.` : 'Synced across your devices.';
+        case 'offline':
+            return status.pendingChanges ? `Saved on this device. ${pending}.` : 'Offline. Scripts remain available on this device.';
+        case 'unauthenticated':
+            return status.pendingChanges ? `Saved on this device. Sign in to sync ${pending}.` : 'Saved on this device. Sign in to sync your scripts.';
+        case 'error':
+            return 'Saved on this device. Sync will retry when available.';
+        default:
+            return 'Saved on this device. Sign in to sync your scripts.';
+    }
+}
+
+async function saveActiveScript(content: string, googleDocUrl: string | null = state.googleDocUrl): Promise<Script | undefined> {
+    const scriptContent = content.trim();
+    if (!scriptContent) return undefined;
+
+    if (activeScriptId) {
+        const updated = await updateScript(activeScriptId, {
+            content: scriptContent,
+            ...(googleDocUrl ? { googleDocUrl } : {}),
+        });
+        if (updated) return updated;
+        activeScriptId = undefined;
+    }
+
+    const created = await createScript(scriptContent, {
+        ...(googleDocUrl ? { googleDocUrl } : {}),
+    });
+    activeScriptId = created.id;
+    return created;
+}
+
+async function renderLibrary(): Promise<void> {
+    const query = els.scriptLibrarySearch.value;
+    const scripts = query.trim() ? await searchScripts(query) : await loadScripts();
+    renderScriptLibrary(scripts, {
+        onOpen: script => { void openLibraryScript(script); },
+        onRename: script => { void renameLibraryScript(script); },
+        onDuplicate: script => { void duplicateLibraryScript(script); },
+        onDelete: script => { void deleteLibraryScript(script); },
+        onSignIn: () => { void requestGoogleSignIn(); },
+        syncStatus: syncStatusLabel(getScriptSyncStatus()),
+    });
+    els.clearHistoryBtn.classList.toggle('hidden', scripts.length === 0);
+    els.scriptLibrarySearch.oninput = () => { void renderLibrary(); };
+}
+async function openLibraryScript(script: ScriptLibraryItem): Promise<void> {
+    els.inputScript.value = script.content;
+    await loadScript(script.content, script.googleDocUrl ?? null, script.id);
+}
+async function renameLibraryScript(script: ScriptLibraryItem): Promise<void> {
+    const title = prompt('Rename script', script.title)?.trim();
+    if (!title || title === script.title) return;
+    await updateScript(script.id, { title });
+    await renderLibrary();
+}
+async function duplicateLibraryScript(script: ScriptLibraryItem): Promise<void> {
+    await duplicateScript(script.id);
+    await renderLibrary();
+}
+async function deleteLibraryScript(script: ScriptLibraryItem): Promise<void> {
+    if (!confirm(`Delete “${script.title || 'Untitled script'}”?`)) return;
+    await deleteScript(script.id);
+    if (activeScriptId === script.id) activeScriptId = undefined;
+    await renderLibrary();
+}
+
+async function requestGoogleSignIn(): Promise<void> {
+    await promptGoogleSignIn(async () => {
+        await syncScripts();
+        await renderLibrary();
+    }, () => { void renderLibrary(); });
+}
+
+async function loadScript(text: string, googleDocUrl: string | null = null, scriptId?: string): Promise<void> {
     if (!text) return;
     const scriptText = text.trim();
     if (!scriptText) return;
 
     state.googleDocUrl = googleDocUrl;
-
-    // Save to history (unless it's a reload of the same text, handled by storage)
-    saveToHistory(scriptText, googleDocUrl);
-
+    if (scriptId) {
+        activeScriptId = scriptId;
+    } else {
+        await saveActiveScript(scriptText, googleDocUrl);
+    }
     // Detect language and update Speech Recognition
     let targetLang = state.languageSetting;
 
@@ -320,14 +402,14 @@ function loadScript(text: string, googleDocUrl: string | null = null): void {
     lockBodyScroll(); // Keep tap targets aligned in the full-screen prompter (see below)
 }
 
-function resetApp(): void {
+async function resetApp(): Promise<void> {
     stopListening();
     autoScrollManager.stop();
     isAutoScrollStarting = false;
     unlockBodyScroll();
     els.prompterContainer.classList.add('hidden');
     els.setupScreen.classList.remove('hidden');
-    renderHistoryList(getHistory(), loadScript);
+    await renderLibrary();
 }
 
 // ── Body scroll lock — iOS PWA landscape tap-offset fix ──────────────────
@@ -385,10 +467,11 @@ if (window.visualViewport) {
 }
 window.addEventListener('orientationchange', () => setTimeout(keepScrollZeroWhileLocked, 60));
 
-function clearHistory(): void {
+async function clearHistory(): Promise<void> {
     if (confirm('Clear all recent scripts?')) {
-        clearAllHistory();
-        renderHistoryList(getHistory(), loadScript);
+        await clearAllHistory();
+        activeScriptId = undefined;
+        await renderLibrary();
     }
 }
 
@@ -404,7 +487,17 @@ els.loadScriptBtn.addEventListener('click', () => {
 els.clearScriptBtn.addEventListener('click', () => {
     (window as any).umami?.track('clear-script');
     els.inputScript.value = '';
+    activeScriptId = undefined;
     els.inputScript.focus();
+});
+// Auto-save on every edit (debounced so typing doesn't hammer Convex)
+let autosaveTimer: number | null = null;
+els.inputScript.addEventListener('input', () => {
+    clearTimeout(autosaveTimer ?? undefined);
+    autosaveTimer = setTimeout(() => {
+        const text = els.inputScript.value.trim();
+        if (text) void saveActiveScript(text);
+    }, 600);
 });
 
 // Copy Script Button
@@ -606,6 +699,8 @@ els.resetAppBtn.addEventListener('click', resetApp);
 
 // Restart Script Button
 els.restartScriptBtn.addEventListener('click', restartScript);
+els.previousParagraphBtn.addEventListener('click', () => navigateParagraphs('back', 1));
+els.nextParagraphBtn.addEventListener('click', () => navigateParagraphs('forward', 1));
 
 const visitorPlatform = detectVisitorPlatform();
 const nativePromo = getNativePromo(visitorPlatform);
@@ -1007,7 +1102,7 @@ els.videoRecordBtn.addEventListener('click', startRecording);
 els.videoStopBtn.addEventListener('click', stopRecording);
 
 // --- Initialization ---
-function initializeUI(): void {
+async function initializeUI(): Promise<void> {
     // Hidden beta flag: visiting with ?beta=hmirror persistently unlocks the
     // horizontal mirror toggle on this device (and relabels the vertical one).
     if (new URLSearchParams(window.location.search).get('beta') === 'hmirror') {
@@ -1049,29 +1144,15 @@ function initializeUI(): void {
     els.smoothAnimationsToggle.checked = state.config.smoothAnimations;
     els.highlightActiveWordToggle.checked = state.config.highlightActiveWord;
 
-    // Seed demo script for first-time users
-    const history = getHistory();
-    if (history.length === 0) {
-        const demoText = `Welcome to VoicePrompter - a completely free teleprompter that works right in the browser.\nThis text is scrolling automatically as you speak following your voice.\nSee the highlighted word? That's where you are in the script right now.\nIf you want to jump to a different part, just tap any word and it syncs instantly.\nYou can also use voice commands like go back, go next, go start, or go finish.\nThe app can also record video with the script overlaid, so you don't need any extra software.\nIn the settings you can adjust font size, margins, line and paragraph spacing, pick a color theme and more - I encourage you to explore the settings on your own and find the best ones for you.\nThe app supports 34 languages and detects them automatically.\nOne more thing - text in square brackets gets skipped automatically [like this]. Useful for notes or reminders to yourself.\nEverything runs on your device. Nothing is sent to any server. You can even save it to your home screen and use it completely offline.\n\nNow go make something great ;)`;
-
-        // Save to localStorage with 'demo' tag
-        const demoItem = {
-            id: Date.now(),
-            text: demoText,
-            preview: demoText.substring(0, 40) + '...',
-            date: new Date().toLocaleDateString(),
-            tag: 'demo'
-        };
-        localStorage.setItem('teleprompter_history', JSON.stringify([demoItem]));
-
-        // Prefill textarea
+    // Seed demo script for first-time users.
+    const scripts = await loadScripts();
+    if (scripts.length === 0) {
+        const demoText = `Welcome to VoicePrompter - a completely free teleprompter that works right in the browser.\nThis text is scrolling automatically as you speak following your voice.\nSee the highlighted word? That's where you are in the script right now.\nIf you want to jump to a different part, just tap any word and it syncs instantly.\nYou can also use voice commands like go back, go next, go start, or go finish.\nThe app can also record video with the script overlaid, so you don't need any extra software.\nIn the settings you can adjust font size, margins, line and paragraph spacing, pick a color theme and more - I encourage you to explore the settings on your own and find the best ones for you.\nThe app supports 34 languages and detects them automatically, whether you're speaking Spanish, French, Japanese, Arabic or any other supported language.\nYou're all set — take a breath, relax, and start speaking when you're ready!`;
+        const demo = await createScript(demoText, { tag: 'demo' });
+        activeScriptId = demo.id;
         els.inputScript.value = demoText;
-
-        // Re-render history with the demo item
-        renderHistoryList(getHistory(), loadScript);
-    } else {
-        renderHistoryList(history, loadScript);
     }
+    await renderLibrary();
 
     updateAutoDetectText(null);
 
@@ -1256,15 +1337,13 @@ els.soundSensitivityInput.addEventListener('input', (e) => {
     els.soundSensitivityVal.textContent = `${Math.round(state.config.soundSensitivity * 100)}%`;
 });
 
-function boot(): void {
+async function boot(): Promise<void> {
     updateScrollingUI();
-    initializeUI();
+    await initializeUI();
     pinDockToVisualViewport();
 
-    // Fallback for async localStorage injection (e.g. WKWebView)
-    setTimeout(() => {
-        renderHistoryList(getHistory(), loadScript);
-    }, 500);
+    // Re-render after local storage has had a chance to finish initializing.
+    setTimeout(() => { void renderLibrary(); }, 500);
 }
 
 // Run boot as soon as the DOM is ready. We must NOT rely solely on the
@@ -1281,8 +1360,8 @@ if (document.readyState === 'loading') {
 
 // iOS Safari restores pages from the back-forward cache without firing
 // DOMContentLoaded, so re-render history (and re-pin the dock) on show.
-window.addEventListener('pageshow', () => {
-    renderHistoryList(getHistory(), loadScript);
+window.addEventListener('pageshow', async () => {
+    await renderLibrary();
     pinDockToVisualViewport();
 });
 
