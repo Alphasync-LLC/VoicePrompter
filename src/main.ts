@@ -280,6 +280,7 @@ async function renderLibrary(): Promise<void> {
     });
     els.clearHistoryBtn.classList.toggle('hidden', scripts.length === 0);
     els.scriptLibrarySyncBtn.classList.toggle('hidden', status.pendingChanges === 0);
+    els.scriptLibrarySignInBtn.classList.toggle('hidden', Boolean(signedInEmail));
     els.scriptLibrarySearch.oninput = () => { void renderLibrary(); };
 }
 async function openLibraryScript(script: ScriptLibraryItem): Promise<void> {

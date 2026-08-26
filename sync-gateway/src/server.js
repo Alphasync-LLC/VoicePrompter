@@ -481,6 +481,7 @@ const server = createServer(async (request, response) => {
     sendJson(response, 200, { authenticated: true, user: publicUser(session) });
   } catch (error) {
     if (error instanceof ScriptRepositoryError) {
+      console.error(`Script storage request failed: ${error.message}`);
       sendJson(response, 503, { error: "Script storage is unavailable" });
       return;
     }
