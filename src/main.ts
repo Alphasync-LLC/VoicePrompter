@@ -5,7 +5,7 @@ import { state } from './state';
 import { renderScript, updateHighlight, scrollToCurrent, applySettings, renderScriptLibrary, restartScript, navigateParagraphs, ScriptLibraryItem } from './render';
 import { initSpeech, startListening, stopListening } from './speech';
 import { autoScrollManager } from './autoscroll';
-import { clearAllHistory, createScript, deleteScript, duplicateScript, getScript, getScriptSyncStatus, loadScripts, searchScripts, syncScripts, updateScript } from './storage';
+import { clearAllHistory, createScript, deleteScript, duplicateScript, getScript, getScriptSyncSession, getScriptSyncStatus, loadScripts, searchScripts, syncScripts, updateScript } from './storage';
 import { Script, ScriptSyncStatus, ScriptWord, ScrollingMode } from './types';
 import { enterVideoMode, exitVideoMode, toggleVideoLayout, startRecording, stopRecording, flipCamera, getMediaConstraints } from './video';
 import { detectAll } from 'tinyld/light';
@@ -240,7 +240,7 @@ function syncStatusLabel(status: ScriptSyncStatus): string {
         case 'unauthenticated':
             return status.pendingChanges ? `Saved on this device. Sign in to sync ${pending}.` : 'Saved on this device. Sign in to sync your scripts.';
         case 'error':
-            return `${identity}Saved on this device. Sync will retry when available.`;
+            return `${identity}Sync failed: ${status.error ?? 'Unknown error'}. Use Sync now to retry.`;
         default:
             return `${identity}Saved on this device. Sign in to sync your scripts.`;
     }
@@ -269,15 +269,17 @@ async function saveActiveScript(content: string, googleDocUrl: string | null = s
 async function renderLibrary(): Promise<void> {
     const query = els.scriptLibrarySearch.value;
     const scripts = query.trim() ? await searchScripts(query) : await loadScripts();
+    const status = getScriptSyncStatus();
     renderScriptLibrary(scripts, {
         onOpen: script => { void openLibraryScript(script); },
         onRename: script => { void renameLibraryScript(script); },
         onDuplicate: script => { void duplicateLibraryScript(script); },
         onDelete: script => { void deleteLibraryScript(script); },
         onSignIn: () => { void requestGoogleSignIn(); },
-        syncStatus: syncStatusLabel(getScriptSyncStatus()),
+        syncStatus: syncStatusLabel(status),
     });
     els.clearHistoryBtn.classList.toggle('hidden', scripts.length === 0);
+    els.scriptLibrarySyncBtn.classList.toggle('hidden', status.pendingChanges === 0);
     els.scriptLibrarySearch.oninput = () => { void renderLibrary(); };
 }
 async function openLibraryScript(script: ScriptLibraryItem): Promise<void> {
@@ -324,14 +326,29 @@ async function requestGoogleSignIn(): Promise<void> {
         els.scriptLibrarySyncStatus.textContent = signedInEmail
             ? `Signed in as ${signedInEmail}. Syncing your scripts…`
             : 'Signed in. Syncing your scripts…';
-        await syncScripts();
-        await renderLibrary();
+        await syncLibraryNow();
     }, (error) => {
+        restore();
         els.scriptLibrarySyncStatus.textContent = `Sign-in failed: ${error.message}`;
     });
     if (!rendered) {
         restore();
         els.scriptLibrarySyncStatus.textContent = 'Google sign-in is unavailable. Refresh and try again.';
+    }
+}
+
+async function syncLibraryNow(): Promise<void> {
+    els.scriptLibrarySyncStatus.textContent = 'Syncing your scripts…';
+    await syncScripts();
+    await renderLibrary();
+}
+
+async function restoreSignedInSession(): Promise<void> {
+    try {
+        const session = await getScriptSyncSession();
+        signedInEmail = session.authenticated ? session.user?.email : undefined;
+    } catch {
+        signedInEmail = undefined;
     }
 }
 
@@ -1102,6 +1119,7 @@ els.highlightActiveWordToggle.addEventListener('change', (e) => {
 
 // Clear History Button
 els.clearHistoryBtn.addEventListener('click', clearHistory);
+els.scriptLibrarySyncBtn.addEventListener('click', () => { void syncLibraryNow(); });
 
 // Dismiss Browser Warning
 els.dismissWarningBtn.addEventListener('click', () => {
@@ -1200,6 +1218,7 @@ async function initializeUI(): Promise<void> {
     els.smoothAnimationsToggle.checked = state.config.smoothAnimations;
     els.highlightActiveWordToggle.checked = state.config.highlightActiveWord;
 
+    await restoreSignedInSession();
     // Seed demo script for first-time users.
     const scripts = await loadScripts();
     if (scripts.length === 0) {

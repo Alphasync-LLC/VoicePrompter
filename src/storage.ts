@@ -41,6 +41,10 @@ export async function searchScripts(query: string): Promise<Script[]> {
     return scriptRepository.search(query);
 }
 
+export async function getScriptSyncSession() {
+    return scriptRepository.session();
+}
+
 export async function syncScripts(): Promise<void> {
     return scriptRepository.sync();
 }

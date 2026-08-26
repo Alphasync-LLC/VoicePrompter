@@ -46,6 +46,7 @@ export interface Elements {
     scriptLibrarySearch: HTMLInputElement;
     scriptLibrarySyncStatus: HTMLElement;
     scriptLibrarySignInBtn: HTMLButtonElement;
+    scriptLibrarySyncBtn: HTMLButtonElement;
     saveCurrentScriptBtn: HTMLButtonElement;
     stopSignToggle: HTMLInputElement;
     alignBtns: {
@@ -177,6 +178,7 @@ export function initElements(): void {
         scriptLibrarySearch: document.getElementById('scriptLibrarySearch') as HTMLInputElement,
         scriptLibrarySyncStatus: document.getElementById('scriptLibrarySyncStatus')!,
         scriptLibrarySignInBtn: document.getElementById('scriptLibrarySignInBtn') as HTMLButtonElement,
+        scriptLibrarySyncBtn: document.getElementById('scriptLibrarySyncBtn') as HTMLButtonElement,
         saveCurrentScriptBtn: document.getElementById('saveCurrentScriptBtn') as HTMLButtonElement,
         stopSignToggle: document.getElementById('stopSignToggle') as HTMLInputElement,
         alignBtns: {

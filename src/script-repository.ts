@@ -1,5 +1,5 @@
 import { GatewayError, GatewayScript, ScriptGatewayClient } from './script-gateway';
-import { Script, ScriptPatch, ScriptSyncStatus } from './types';
+import { GatewaySession, Script, ScriptPatch, ScriptSyncStatus } from './types';
 
 type StorageKind = ScriptSyncStatus['storage'];
 
@@ -316,6 +316,11 @@ export class ScriptRepository {
 
     getSyncStatus(): ScriptSyncStatus {
         return { ...this.syncStatus, pendingChanges: this.pendingChangeCount(), storage: this.cache.storageKind() };
+    }
+
+    async session(): Promise<GatewaySession> {
+        await this.ready;
+        return this.gateway.isConfigured ? this.gateway.session() : { authenticated: false };
     }
 
     async sync(): Promise<void> {
