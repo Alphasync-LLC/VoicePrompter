@@ -15,6 +15,7 @@ const DATABASE_NAME = 'voiceprompter-scripts';
 const STORE_NAME = 'cache';
 const CACHE_KEY = 'scripts-v1';
 const FALLBACK_KEY = 'voiceprompter-scripts-v1';
+const LEGACY_HISTORY_KEY = 'teleprompter_history';
 
 function clone<T>(value: T): T {
     return JSON.parse(JSON.stringify(value)) as T;
@@ -56,6 +57,41 @@ function scriptFromGateway(script: GatewayScript, id = script.id): Script {
     };
 }
 
+/** Imports the prior browser history format without deleting its source key. */
+function legacyHistoryScripts(): Script[] {
+    try {
+        const raw = localStorage.getItem(LEGACY_HISTORY_KEY);
+        const items: unknown = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(items)) return [];
+        return items.flatMap((item, index) => {
+            if (!item || typeof item !== 'object') return [];
+            const record = item as { text?: unknown; preview?: unknown; date?: unknown; googleDocUrl?: unknown; tag?: unknown };
+            if (typeof record.text !== 'string' || !record.text.trim()) return [];
+            const timestamp = Date.now() - index;
+            return [{
+                id: newId(),
+                title: titleFor(record.text),
+                content: record.text,
+                preview: typeof record.preview === 'string' ? record.preview : previewFor(record.text),
+                createdAt: timestamp,
+                updatedAt: timestamp,
+                ...(typeof record.googleDocUrl === 'string' ? { googleDocUrl: record.googleDocUrl } : {}),
+                wordCount: wordCountFor(record.text),
+                isFavorite: false,
+                ...(typeof record.tag === 'string' ? { tag: record.tag } : {}),
+            }];
+        });
+    } catch {
+        return [];
+    }
+}
+
+function mergeLegacyHistory(state: CacheState): CacheState {
+    const existingContent = new Set(state.scripts.map(script => script.content));
+    const recovered = legacyHistoryScripts().filter(script => !existingContent.has(script.content));
+    return recovered.length === 0 ? state : { ...state, scripts: [...state.scripts, ...recovered] };
+}
+
 /** Durable local cache with IndexedDB first and a constrained browser fallback. */
 class ScriptCache {
     private kind: StorageKind = 'memory';
@@ -74,8 +110,9 @@ class ScriptCache {
                     request.onerror = () => reject(request.error);
                 });
                 this.kind = 'indexeddb';
-                const state = await this.readIndexedDb();
-                return state ?? clone(EMPTY_CACHE);
+                const state = mergeLegacyHistory((await this.readIndexedDb()) ?? clone(EMPTY_CACHE));
+                await this.save(state);
+                return state;
             } catch {
                 this.database?.close();
                 this.database = undefined;
@@ -87,7 +124,9 @@ class ScriptCache {
                 this.fallback = localStorage;
                 this.kind = 'localstorage';
                 const serialized = this.fallback.getItem(FALLBACK_KEY);
-                return serialized ? this.parse(serialized) : clone(EMPTY_CACHE);
+                const state = mergeLegacyHistory(serialized ? this.parse(serialized) : clone(EMPTY_CACHE));
+                await this.save(state);
+                return state;
             }
         } catch {
             // Privacy modes can deny both IndexedDB and localStorage. Keep an in-memory cache rather than failing the editor.
