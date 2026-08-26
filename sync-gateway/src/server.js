@@ -485,6 +485,7 @@ const server = createServer(async (request, response) => {
       sendJson(response, 503, { error: "Script storage is unavailable" });
       return;
     }
+    console.error(`Gateway request failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     const status = Number.isInteger(error.status) ? error.status : 401;
     if (status === 401) {
       sendJson(response, 401, { error: "Authentication failed" });
