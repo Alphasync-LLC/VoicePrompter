@@ -483,8 +483,11 @@ els.loadScriptBtn.addEventListener('click', () => {
     loadScript(els.inputScript.value);
 });
 els.saveCurrentScriptBtn.addEventListener('click', async () => {
-    const saved = await saveActiveScript(els.inputScript.value);
-    if (!saved) return;
+    const content = els.inputScript.value.trim();
+    if (!content) return;
+    const saved = await createScript(content, {
+        ...(state.googleDocUrl ? { googleDocUrl: state.googleDocUrl } : {}),
+    });
     activeScriptId = saved.id;
     await renderLibrary();
 });
