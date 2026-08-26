@@ -327,6 +327,12 @@ export class ScriptRepository {
 
     private async initialize(): Promise<void> {
         this.state = await this.cache.initialize();
+        const queued = new Set(this.state.pendingUpserts);
+        for (const script of this.state.scripts) {
+            if (!script.remoteId) queued.add(script.id);
+        }
+        this.state.pendingUpserts = [...queued];
+        await this.persist();
         this.syncStatus = {
             state: this.gateway.isConfigured ? 'offline' : 'unavailable',
             pendingChanges: this.pendingChangeCount(),
