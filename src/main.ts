@@ -5,7 +5,7 @@ import { state } from './state';
 import { renderScript, updateHighlight, scrollToCurrent, applySettings, renderScriptLibrary, restartScript, navigateParagraphs, ScriptLibraryItem } from './render';
 import { initSpeech, startListening, stopListening } from './speech';
 import { autoScrollManager } from './autoscroll';
-import { clearAllHistory, createScript, deleteScript, duplicateScript, getScriptSyncStatus, loadScripts, searchScripts, syncScripts, updateScript } from './storage';
+import { clearAllHistory, createScript, deleteScript, duplicateScript, getScript, getScriptSyncStatus, loadScripts, searchScripts, syncScripts, updateScript } from './storage';
 import { Script, ScriptSyncStatus, ScriptWord, ScrollingMode } from './types';
 import { enterVideoMode, exitVideoMode, toggleVideoLayout, startRecording, stopRecording, flipCamera, getMediaConstraints } from './video';
 import { detectAll } from 'tinyld/light';
@@ -279,8 +279,13 @@ async function renderLibrary(): Promise<void> {
     els.scriptLibrarySearch.oninput = () => { void renderLibrary(); };
 }
 async function openLibraryScript(script: ScriptLibraryItem): Promise<void> {
-    els.inputScript.value = script.content;
-    await loadScript(script.content, script.googleDocUrl ?? null, script.id);
+    const selected = await getScript(script.id);
+    if (!selected) {
+        await renderLibrary();
+        return;
+    }
+    els.inputScript.value = selected.content;
+    await loadScript(selected.content, selected.googleDocUrl ?? null, selected.id);
 }
 async function renameLibraryScript(script: ScriptLibraryItem): Promise<void> {
     const title = prompt('Rename script', script.title)?.trim();

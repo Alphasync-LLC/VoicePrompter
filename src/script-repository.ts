@@ -247,6 +247,12 @@ export class ScriptRepository {
         return clone(script);
     }
 
+    async get(id: string): Promise<Script | undefined> {
+        await this.ready;
+        const script = this.state.scripts.find((item) => item.id === id);
+        return script ? clone(script) : undefined;
+    }
+
     async update(id: string, patch: ScriptPatch): Promise<Script | undefined> {
         await this.ready;
         const script = this.state.scripts.find((item) => item.id === id);

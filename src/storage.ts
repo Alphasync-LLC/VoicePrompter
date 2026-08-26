@@ -21,6 +21,10 @@ export async function createScript(content: string, options: Omit<ScriptPatch, '
     return scriptRepository.create(content, options);
 }
 
+export async function getScript(id: string): Promise<Script | undefined> {
+    return scriptRepository.get(id);
+}
+
 export async function updateScript(id: string, patch: ScriptPatch): Promise<Script | undefined> {
     return scriptRepository.update(id, patch);
 }
