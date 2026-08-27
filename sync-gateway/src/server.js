@@ -274,7 +274,7 @@ async function authenticatePassword(body) {
     throw error;
   }
 
-  const derivedKey = await scryptAsync(body.password, config.passwordScrypt.salt, config.passwordScrypt.derivedKey.length);
+  const derivedKey = Buffer.from(await scryptAsync(body.password, config.passwordScrypt.salt, config.passwordScrypt.derivedKey.length));
   const passwordMatches = equalBuffers(derivedKey, config.passwordScrypt.derivedKey);
   const usernameMatches = equalBuffers(Buffer.from(body.username), Buffer.from(config.authUsername));
   return passwordMatches && usernameMatches ? { username: config.authUsername } : null;
