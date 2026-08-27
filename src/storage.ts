@@ -45,6 +45,10 @@ export async function getScriptSyncSession() {
     return scriptRepository.session();
 }
 
+export async function signOutScriptSync(): Promise<void> {
+    await scriptRepository.signOut();
+}
+
 export async function syncScripts(): Promise<void> {
     return scriptRepository.sync();
 }

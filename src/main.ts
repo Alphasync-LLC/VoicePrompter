@@ -5,7 +5,7 @@ import { state } from './state';
 import { renderScript, updateHighlight, scrollToCurrent, applySettings, renderScriptLibrary, restartScript, navigateParagraphs, ScriptLibraryItem } from './render';
 import { initSpeech, startListening, stopListening } from './speech';
 import { autoScrollManager } from './autoscroll';
-import { clearAllHistory, createScript, deleteScript, duplicateScript, getScript, getScriptSyncSession, getScriptSyncStatus, loadScripts, searchScripts, syncScripts, updateScript } from './storage';
+import { clearAllHistory, createScript, deleteScript, duplicateScript, getScript, getScriptSyncSession, getScriptSyncStatus, loadScripts, searchScripts, signOutScriptSync, syncScripts, updateScript } from './storage';
 import { Script, ScriptSyncStatus, ScriptWord, ScrollingMode } from './types';
 import { enterVideoMode, exitVideoMode, toggleVideoLayout, startRecording, stopRecording, flipCamera, getMediaConstraints } from './video';
 import { detectAll } from 'tinyld/light';
@@ -277,12 +277,13 @@ async function renderLibrary(): Promise<void> {
         onRename: script => { void renameLibraryScript(script); },
         onDuplicate: script => { void duplicateLibraryScript(script); },
         onDelete: script => { void deleteLibraryScript(script); },
-        onSignIn: () => { void requestGoogleSignIn(); },
+        onSignIn: () => { void (signedInEmail ? signOutLibrary() : requestGoogleSignIn()); },
         syncStatus: syncStatusLabel(status),
     });
     els.clearHistoryBtn.classList.toggle('hidden', scripts.length === 0);
     els.scriptLibrarySyncBtn.classList.toggle('hidden', status.pendingChanges === 0);
-    els.scriptLibrarySignInBtn.classList.toggle('hidden', Boolean(signedInEmail));
+    els.scriptLibrarySignInBtn.textContent = signedInEmail ? 'Sign out' : 'Sign in to sync';
+    els.scriptLibrarySignInBtn.classList.remove('hidden');
     els.scriptLibrarySearch.oninput = () => { void renderLibrary(); };
 }
 async function openLibraryScript(script: ScriptLibraryItem): Promise<void> {
@@ -324,7 +325,7 @@ async function requestGoogleSignIn(): Promise<void> {
         button.classList.remove('hidden');
     };
     const rendered = await renderGoogleSignIn(chooser, async (session) => {
-        signedInEmail = session.user?.email;
+        signedInEmail = session.user?.username ?? session.user?.email; 
         restore();
         els.scriptLibrarySyncStatus.textContent = signedInEmail
             ? `Signed in as ${signedInEmail}. Syncing your scripts…`
@@ -340,6 +341,12 @@ async function requestGoogleSignIn(): Promise<void> {
     }
 }
 
+async function signOutLibrary(): Promise<void> {
+    await signOutScriptSync();
+    signedInEmail = undefined;
+    await renderLibrary();
+}
+
 async function syncLibraryNow(): Promise<void> {
     els.scriptLibrarySyncStatus.textContent = 'Syncing your scripts…';
     await syncScripts();
@@ -349,7 +356,7 @@ async function syncLibraryNow(): Promise<void> {
 async function restoreSignedInSession(): Promise<void> {
     try {
         const session = await getScriptSyncSession();
-        signedInEmail = session.authenticated ? session.user?.email : undefined;
+        signedInEmail = session.authenticated ? session.user?.username ?? session.user?.email : undefined;
     } catch {
         signedInEmail = undefined;
     }

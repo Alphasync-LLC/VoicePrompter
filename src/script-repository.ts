@@ -323,6 +323,12 @@ export class ScriptRepository {
         return this.gateway.isConfigured ? this.gateway.session() : { authenticated: false };
     }
 
+    async signOut(): Promise<void> {
+        await this.ready;
+        if (this.gateway.isConfigured) await this.gateway.signOut();
+        this.syncStatus = { ...this.getSyncStatus(), state: 'unauthenticated' };
+    }
+
     async sync(): Promise<void> {
         await this.ready;
         if (this.syncing) return this.syncing;
