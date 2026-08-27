@@ -542,9 +542,13 @@ const server = createServer(async (request, response) => {
       return;
     }
     console.error(`Gateway request failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    const status = Number.isInteger(error.status) ? error.status : 401;
+    const status = Number.isInteger(error.status) ? error.status : 500;
     if (status === 401) {
       sendJson(response, 401, { error: "Authentication failed" });
+      return;
+    }
+    if (status >= 500) {
+      sendJson(response, 500, { error: "Internal server error" });
       return;
     }
     sendJson(response, status, { error: error.message });
