@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 import { promisify } from "node:util";
 import { createConvexScriptRepository, ScriptRepositoryError } from "./convex-script-repository.js";
 
+const SESSION_COOKIE = "__Host-voiceprompter_session";
 const JSON_BODY_LIMIT = 2 * 1024 * 1024; // Long-form video scripts; still a bounded public request size.
 const DEFAULT_SESSION_TTL_SECONDS = 8 * 60 * 60;
 const MAX_SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
